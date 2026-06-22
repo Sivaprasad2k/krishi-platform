@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "home": "Home",
+    "crops": "My Crops",
+    "tasks": "Work To Do",
+    "alerts": "Alerts",
+    "profile": "Profile"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "phoneNumber": "Phone Number",
+    "password": "Password",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "confirmPassword": "Confirm Password",
+    "optional": "Optional",
+    "submit": "Submit"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}!",
+    "status": "Farm Operations Overview",
+    "todayTasks": "Work To Do Today",
+    "cropProblems": "Crop Problems",
+    "recommendedActions": "Recommended Actions",
+    "alerts": "Alerts",
+    "farmOverview": "Farm Overview / Metrics",
+    "stateSelector": "Review States (Dev Mode)"
+  },
+  "states": {
+    "loading": "Loading information, please wait...",
+    "noItems": "No information found",
+    "emptyDescription": "There is no work or data recorded here at the moment.",
+    "refresh": "Refresh",
+    "errorOccurred": "Something went wrong",
+    "errorDescription": "Could not fetch information from the server. Please check your connection.",
+    "tryAgain": "Try Again",
+    "offlineTitle": "No Internet Connection",
+    "offlineDescription": "You are currently offline. Krishi will sync details once you reconnect.",
+    "reconnect": "Check Connection",
+    "emptyWork": "No pending work today! All tasks completed.",
+    "emptyProblems": "Your fields look healthy! No crop problems reported.",
+    "emptyActions": "No recommended actions available at this time.",
+    "emptyAlerts": "No alerts at this moment.",
+    "emptyCrops": "No seasons or crops recorded yet."
+  }
+}

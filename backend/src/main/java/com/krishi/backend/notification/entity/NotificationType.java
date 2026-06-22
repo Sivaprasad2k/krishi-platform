@@ -1,0 +1,17 @@
+package com.krishi.backend.notification.entity;
+
+public enum NotificationType {
+    TASK_CREATED,
+    TASK_STARTED,
+    TASK_COMPLETED,
+    TASK_CANCELLED,
+    DISEASE_REPORTED,
+    DISEASE_UNDER_REVIEW,
+    DISEASE_TREATED,
+    DISEASE_CLOSED,
+    TREATMENT_PLANNED,
+    TREATMENT_STARTED,
+    TREATMENT_COMPLETED,
+    CROP_CYCLE_STARTED,
+    CROP_CYCLE_COMPLETED
+}

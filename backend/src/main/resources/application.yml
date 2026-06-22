@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/krishi_db
+    username: postgres
+    password: Siva@2k5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    default-schema: krishi
+    schemas: krishi
+
+logging:
+  level:
+    org.flywaydb: DEBUG
+
+jwt:
+  secret: 6d7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9
+  expiration: 86400000

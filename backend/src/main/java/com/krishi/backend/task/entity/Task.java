@@ -17,9 +17,21 @@ public class Task {
     @Id
     private UUID id;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "crop_planting_id", nullable = false)
+    private com.krishi.backend.cropplanting.entity.CropPlanting cropPlanting;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "treatment_id", nullable = false)
+    @JoinColumn(name = "treatment_id", nullable = true)
     private Treatment treatment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "task_type", nullable = false)
+    private TaskType taskType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TaskSource source;
 
     @Column(nullable = false)
     private String title;

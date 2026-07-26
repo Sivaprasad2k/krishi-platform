@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public record ApiResponse<T>(
         boolean success,
         String message,
+        String errorCode,
         T data,
         LocalDateTime timestamp
 ) {

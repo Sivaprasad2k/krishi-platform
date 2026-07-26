@@ -160,7 +160,8 @@ public class TreatmentIntegrationTest {
     private UUID createCropCycleAndStart(String name, UUID farmId, String token) throws Exception {
         CropCycleCreateRequest cycleRequest = new CropCycleCreateRequest();
         cycleRequest.setName(name);
-        cycleRequest.setCropName("Tomato");
+        cycleRequest.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest.setYear(2026);
         cycleRequest.setFarmId(farmId);
 
         MvcResult cycleResult = mockMvc.perform(post("/api/v1/crop-cycles")

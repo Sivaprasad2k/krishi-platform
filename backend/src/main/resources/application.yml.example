@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/krishi_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:YOUR_DB_PASSWORD_HERE}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    default-schema: krishi
+    schemas: krishi
+
+logging:
+  level:
+    org.flywaydb: DEBUG
+
+jwt:
+  secret: ${JWT_SECRET:YOUR_SECURE_JWT_SECRET_KEY_HERE_MIN_256_BITS}
+  expiration: ${JWT_EXPIRATION:86400000}

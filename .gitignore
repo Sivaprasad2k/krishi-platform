@@ -29,12 +29,13 @@ dist/
 build/
 
 # =========================
-# Python AI Service
+# Local Secrets & Env
 # =========================
-__pycache__/
-*.pyc
-venv/
 .env
+.env.local
+application-local.yml
+*.pem
+*.key
 
 # =========================
 # Logs

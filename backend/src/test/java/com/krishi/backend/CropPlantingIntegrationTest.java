@@ -19,6 +19,7 @@ import com.krishi.backend.farm.repository.FarmRepository;
 import com.krishi.backend.identity.dto.LoginRequest;
 import com.krishi.backend.identity.dto.RegisterRequest;
 import com.krishi.backend.identity.repository.UserRepository;
+import com.krishi.backend.notification.repository.NotificationRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,9 @@ public class CropPlantingIntegrationTest {
     @Autowired
     private DomainEventRepository domainEventRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
@@ -82,6 +86,7 @@ public class CropPlantingIntegrationTest {
         });
         objectMapper.registerModule(module);
         
+        notificationRepository.deleteAll();
         domainEventRepository.deleteAll();
         cropPlantingRepository.deleteAll();
         cropCycleRepository.deleteAll();
@@ -91,6 +96,7 @@ public class CropPlantingIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        notificationRepository.deleteAll();
         domainEventRepository.deleteAll();
         cropPlantingRepository.deleteAll();
         cropCycleRepository.deleteAll();
@@ -147,7 +153,8 @@ public class CropPlantingIntegrationTest {
     private UUID createCropCycle(String name, UUID farmId, String token) throws Exception {
         CropCycleCreateRequest cycleRequest = new CropCycleCreateRequest();
         cycleRequest.setName(name);
-        cycleRequest.setCropName("Tomato");
+        cycleRequest.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest.setYear(2026);
         cycleRequest.setFarmId(farmId);
 
         MvcResult cycleResult = mockMvc.perform(post("/api/v1/crop-cycles")
@@ -269,6 +276,13 @@ public class CropPlantingIntegrationTest {
                         .content(objectMapper.writeValueAsString(createRequest2)))
                 .andExpect(status().isBadRequest());
 
+        // 10b. Farmer A tries to update a CropPlanting on the COMPLETED CropCycle -> fails with 400 Bad Request
+        mockMvc.perform(put("/api/v1/crop-plantings/" + plantingId)
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isBadRequest());
+
         // 11. Retrieve all crop plantings for the crop cycle
         MvcResult listResult = mockMvc.perform(get("/api/v1/crop-cycles/" + cycleId + "/plantings")
                         .header("Authorization", "Bearer " + tokenA))
@@ -277,5 +291,42 @@ public class CropPlantingIntegrationTest {
 
         JsonNode listResponse = objectMapper.readTree(listResult.getResponse().getContentAsString());
         assertEquals(2, listResponse.get("data").size());
+
+        // 12. Check that notifications were generated for Crop Planting creation & update
+        List<com.krishi.backend.notification.entity.Notification> notifications = notificationRepository.findAll();
+        long createdNotificationsCount = notifications.stream()
+                .filter(n -> n.getNotificationType().name().equals("CROP_PLANTING_CREATED"))
+                .count();
+        long updatedNotificationsCount = notifications.stream()
+                .filter(n -> n.getNotificationType().name().equals("CROP_PLANTING_UPDATED"))
+                .count();
+
+        assertEquals(2, createdNotificationsCount, "Should have 2 CROP_PLANTING_CREATED notifications");
+        assertEquals(1, updatedNotificationsCount, "Should have 1 CROP_PLANTING_UPDATED notification");
+
+        var createdNotif = notifications.stream()
+                .filter(n -> n.getNotificationType().name().equals("CROP_PLANTING_CREATED"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(createdNotif.getMessage().contains("cropName") && createdNotif.getMessage().contains("Tomato"));
+    }
+
+    @Test
+    void testInvalidDateRangeRejection() throws Exception {
+        String token = registerAndLogin("Farmer DateTest", "9555555599", "datetest@krishi.com", "Pass@123");
+        UUID farmId = createFarm("Date Test Farm", token);
+        UUID cycleId = createCropCycle("Date Test Season", farmId, token);
+
+        CropPlantingCreateRequest invalidRequest = new CropPlantingCreateRequest();
+        invalidRequest.setCropCycleId(cycleId);
+        invalidRequest.setCropName("Carrot");
+        invalidRequest.setPlantingDate(LocalDateTime.now());
+        invalidRequest.setExpectedHarvestDate(LocalDateTime.now().minusDays(30)); // 30 days in the PAST
+
+        mockMvc.perform(post("/api/v1/crop-plantings")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
     }
 }

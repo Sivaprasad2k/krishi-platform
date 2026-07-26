@@ -1,5 +1,6 @@
 package com.krishi.backend.task.dto;
 
+import com.krishi.backend.task.entity.TaskType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -12,8 +13,12 @@ import java.util.UUID;
 @Setter
 public class TaskCreateRequest {
 
-    @NotNull(message = "Treatment ID is required")
+    @NotNull(message = "Crop planting ID is required")
+    private UUID cropPlantingId;
+
     private UUID treatmentId;
+
+    private TaskType taskType;
 
     @NotBlank(message = "Task title is required")
     private String title;

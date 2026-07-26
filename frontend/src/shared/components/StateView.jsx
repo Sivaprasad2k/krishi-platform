@@ -12,7 +12,11 @@ import { useTranslation } from 'react-i18next';
 const StateView = ({
   state = 'success',
   onRetry,
+  emptyTitle,
   emptyMessage,
+  emptyActionText,
+  onEmptyAction,
+  emptyIcon,
   errorMessage,
   loadingMessage,
   children
@@ -32,29 +36,31 @@ const StateView = ({
         </div>
       );
 
-    case 'empty':
+    case 'empty': {
+      const Icon = emptyIcon || Inbox;
       return (
-        <div className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-8 text-center animate-fade-in">
-          <div className="rounded-full bg-emerald-50 p-4 text-emerald-600 mb-4">
-            <Inbox className="h-10 w-10" />
+        <div className="flex min-h-[320px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-350 bg-white p-8 text-center animate-fade-in shadow-sm">
+          <div className="rounded-full bg-emerald-50 p-4.5 text-emerald-600 mb-4">
+            <Icon className="h-10 w-10 animate-pulse" />
           </div>
-          <h3 className="text-lg font-bold text-gray-800 mb-2">
-            {t('states.noItems', 'No information found')}
+          <h3 className="text-xl font-black text-gray-800 mb-1.5 leading-tight">
+            {emptyTitle || t('states.noItems', 'No information found')}
           </h3>
-          <p className="text-base text-gray-500 max-w-sm mb-6">
-            {emptyMessage || t('states.emptyDescription', 'There is no work or data recorded here at the moment.')}
+          <p className="text-base font-semibold text-gray-500 max-w-sm mb-6 leading-relaxed">
+            {emptyMessage || t('states.emptyDescription', 'No information found.')}
           </p>
-          {onRetry && (
+          {emptyActionText && onEmptyAction && (
             <button
-              onClick={onRetry}
+              onClick={onEmptyAction}
               style={minTouchTargetStyle}
-              className="flex items-center justify-center rounded-xl bg-emerald-600 px-6 text-base font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              className="flex items-center justify-center rounded-xl bg-emerald-600 px-7 py-3 text-base font-bold text-white shadow-md hover:bg-emerald-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer"
             >
-              {t('states.refresh', 'Refresh')}
+              {emptyActionText}
             </button>
           )}
         </div>
       );
+    }
 
     case 'error':
       return (

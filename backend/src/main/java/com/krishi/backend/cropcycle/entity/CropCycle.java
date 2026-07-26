@@ -17,11 +17,18 @@ public class CropCycle {
     @Id
     private UUID id;
 
-    @Column(nullable = false)
+    @Column
     private String name;
 
-    @Column(name = "crop_name", nullable = false)
-    private String cropName;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "season_type", nullable = false)
+    private SeasonType seasonType;
+
+    @Column(nullable = false)
+    private Integer year;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -76,27 +76,15 @@ public class AutomationService {
         }
     }
 
-    private void handleCreateNotification(BaseDomainEvent event) {
-        if ("DISEASE_INCIDENT_REPORTED".equals(event.getEventType())) {
-            DiseaseIncident incident = diseaseIncidentRepository.findById(event.aggregateId())
-                    .orElseThrow(() -> new IllegalArgumentException("Disease incident not found: " + event.aggregateId()));
-            UUID userId = incident.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
-            String title = "Disease Incident Alert";
-            String message = incident.getDiseaseName() + " reported for " + incident.getCropPlanting().getCropName() + " (" + incident.getCropPlanting().getCropVariety() + ")";
-            
-            notificationService.createNotification(userId, title, message, NotificationType.DISEASE_REPORTED);
-            log.debug("Automation rule created DISEASE_REPORTED notification for user: {}", userId);
+    private String escapeJson(String input) {
+        if (input == null) return "";
+        return input.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
 
-        } else if ("TASK_COMPLETED".equals(event.getEventType())) {
-            Task task = taskRepository.findById(event.aggregateId())
-                    .orElseThrow(() -> new IllegalArgumentException("Task not found: " + event.aggregateId()));
-            UUID userId = task.getTreatment().getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
-            String title = "Task Completed Alert";
-            String message = "Task " + task.getTitle() + " completed successfully";
-            
-            notificationService.createNotification(userId, title, message, NotificationType.TASK_COMPLETED);
-            log.debug("Automation rule created TASK_COMPLETED notification for user: {}", userId);
-        }
+    private void handleCreateNotification(BaseDomainEvent event) {
+        // NotificationEventListener already creates notifications for domain events unconditionally.
+        // Skipping duplicate notification creation in automation service to prevent duplicate alerts.
+        log.debug("Notification for event [{}] is managed by NotificationEventListener; skipping duplicate creation in AutomationService.", event.getEventType());
     }
 
     private void handleCreateTask(BaseDomainEvent event) {
@@ -107,9 +95,12 @@ public class AutomationService {
 
             Task task = new Task();
             task.setId(UUID.randomUUID());
+            task.setCropPlanting(treatment.getDiseaseIncident().getCropPlanting());
             task.setTreatment(treatment);
-            task.setTitle("Inspect Crop Recovery");
-            task.setDescription("Automated follow-up crop recovery inspection following treatment completion of: " + treatment.getTreatmentName());
+            task.setTaskType(com.krishi.backend.task.entity.TaskType.CROP_INSPECTION);
+            task.setSource(com.krishi.backend.task.entity.TaskSource.AUTOMATION);
+            task.setTitle("INSPECT_CROP_RECOVERY");
+            task.setDescription(String.format("{\"treatmentName\":\"%s\"}", escapeJson(treatment.getTreatmentName())));
             task.setDueDate(LocalDateTime.now().plusDays(7));
             task.setStatus(TaskStatus.PENDING);
             task.setCreatedAt(LocalDateTime.now());

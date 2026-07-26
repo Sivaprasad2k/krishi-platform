@@ -38,6 +38,22 @@ public class TaskController {
         );
     }
 
+    @GetMapping("/api/v1/tasks")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getAllTasks(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<TaskResponse> response = taskService.getAllTasksForUser(userDetails);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<TaskResponse>>builder()
+                        .success(true)
+                        .message("Tasks listed successfully for farmer")
+                        .data(response)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     @PostMapping("/api/v1/tasks/{id}/start")
     public ResponseEntity<ApiResponse<TaskResponse>> startTask(
             @PathVariable UUID id,
@@ -100,6 +116,23 @@ public class TaskController {
                 ApiResponse.<TaskResponse>builder()
                         .success(true)
                         .message("Task details retrieved successfully")
+                        .data(response)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @GetMapping("/api/v1/crop-plantings/{cropPlantingId}/tasks")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getTasksByCropPlanting(
+            @PathVariable UUID cropPlantingId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<TaskResponse> response = taskService.getTasksByCropPlanting(cropPlantingId, userDetails);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<TaskResponse>>builder()
+                        .success(true)
+                        .message("Tasks listed successfully for crop planting")
                         .data(response)
                         .timestamp(LocalDateTime.now())
                         .build()

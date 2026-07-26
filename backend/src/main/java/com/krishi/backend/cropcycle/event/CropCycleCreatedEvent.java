@@ -2,6 +2,7 @@ package com.krishi.backend.cropcycle.event;
 
 import com.krishi.backend.common.event.BaseDomainEvent;
 import com.krishi.backend.cropcycle.entity.CropCycleStatus;
+import com.krishi.backend.cropcycle.entity.SeasonType;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
@@ -12,7 +13,8 @@ public record CropCycleCreatedEvent(
         UUID aggregateId,
         UUID farmId,
         String name,
-        String cropName,
+        SeasonType seasonType,
+        Integer year,
         CropCycleStatus status,
         LocalDateTime occurredAt,
         UUID createdBy

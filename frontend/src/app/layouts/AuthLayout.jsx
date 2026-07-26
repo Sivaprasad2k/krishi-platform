@@ -1,43 +1,66 @@
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
+import { Sprout } from 'lucide-react';
+import AuthLanguageSelector from '../../features/auth/components/AuthLanguageSelector';
+import AuthBrandPanel from '../../features/auth/components/AuthBrandPanel';
+import AuthTabs from '../../features/auth/components/AuthTabs';
 
 /**
- * Layout wrapper for public authentication pages (Login, Register).
- * Adapts screen space, centering content, and provides a language selector.
+ * Responsive AuthLayout shell supporting two-zone composition on desktop
+ * and single-column composition on mobile with a pre-auth language bar.
  */
 const AuthLayout = () => {
-  const { i18n } = useTranslation();
-
-  const changeLanguage = (e) => {
-    i18n.changeLanguage(e.target.value);
-  };
+  const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-50 px-4 py-8 relative">
-      {/* Top right language selector for accessibility before login */}
-      <div className="absolute top-4 right-4 flex items-center space-x-2 rounded-xl border border-gray-250 bg-white px-3 shadow-sm h-12">
-        <Globe className="h-5 w-5 text-gray-500" />
-        <select
-          value={i18n.language}
-          onChange={changeLanguage}
-          className="bg-transparent text-base font-bold text-gray-700 focus:outline-none cursor-pointer h-full"
-          style={{ minHeight: '48px' }}
-          aria-label="Select Language"
-        >
-          <option value="en">English</option>
-          <option value="ta">தமிழ்</option>
-          <option value="ml">മലയാളം</option>
-        </select>
-      </div>
+    <div className="min-h-screen w-full bg-stone-50/90 text-stone-900 flex flex-col justify-between relative selection:bg-emerald-200 selection:text-emerald-900">
+      {/* Subtle background decoration */}
+      <div className="absolute inset-0 bg-[radial-gradient(#059669_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.03] pointer-events-none" />
 
-      <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-sm border border-gray-200 mt-12 animate-fade-in">
-        <div className="flex flex-col items-center text-center">
-          <h1 className="text-4xl font-black text-emerald-700 tracking-tight">KRISHI</h1>
-          <p className="text-base font-medium text-gray-500 mt-1">Operational Farm Management Platform</p>
+      {/* Top Header: Pre-Auth Language Selector */}
+      <header className="w-full pt-6 pb-2 px-4 relative z-10">
+        <AuthLanguageSelector />
+      </header>
+
+      {/* Central Content Area */}
+      <main className="w-full max-w-6xl mx-auto px-4 py-6 sm:py-8 flex-1 flex items-center justify-center relative z-10">
+        <div className="w-full flex flex-col lg:flex-row items-center lg:items-stretch justify-between gap-8 lg:gap-10">
+          
+          {/* Desktop Left Brand Panel */}
+          <AuthBrandPanel />
+
+          {/* Mobile Top Brand Header */}
+          <div className="lg:hidden flex flex-col items-center text-center space-y-2 select-none">
+            <div className="flex items-center space-x-2.5">
+              <div className="h-10 w-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-xs">
+                <Sprout className="h-6 w-6" />
+              </div>
+              <span className="text-3xl font-black tracking-tight text-emerald-800">
+                KRISHI
+              </span>
+            </div>
+            <p className="text-sm font-bold text-stone-600 max-w-xs">
+              {t('auth.tagline', 'Manage your farm, grow with confidence.')}
+            </p>
+          </div>
+
+          {/* Primary Authentication Card (Right / Central Area) */}
+          <div className="w-full max-w-md lg:w-7/12 xl:w-1/2 bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-stone-200/90 flex flex-col justify-between">
+            <div>
+              {/* Segmented Auth Tabs */}
+              <AuthTabs />
+
+              {/* Dynamic Auth Form Outlet (LoginPage or RegisterPage) */}
+              <Outlet />
+            </div>
+          </div>
         </div>
-        <Outlet />
-      </div>
+      </main>
+
+      {/* Footer Disclaimer */}
+      <footer className="w-full py-4 text-center text-xs font-semibold text-stone-500 relative z-10">
+        <p>{t('auth.termsDisclaimer', 'By continuing, you agree to our Terms of Service and Privacy Policy.')}</p>
+      </footer>
     </div>
   );
 };

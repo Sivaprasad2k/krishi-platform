@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class TaskMapper {
 
     /**
-     * Map a Task entity to a TaskResponse DTO.
+     * Map a Task entity to a TaskResponse DTO safely.
      *
      * @param task the Task entity
      * @return the mapped TaskResponse DTO
@@ -20,7 +20,10 @@ public class TaskMapper {
 
         return TaskResponse.builder()
                 .id(task.getId())
-                .treatmentId(task.getTreatment().getId())
+                .cropPlantingId(task.getCropPlanting() != null ? task.getCropPlanting().getId() : null)
+                .treatmentId(task.getTreatment() != null ? task.getTreatment().getId() : null)
+                .taskType(task.getTaskType())
+                .source(task.getSource())
                 .title(task.getTitle())
                 .description(task.getDescription())
                 .dueDate(task.getDueDate())

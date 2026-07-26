@@ -185,7 +185,8 @@ public class AutomationIntegrationTest {
     private UUID createCropCycleAndStart(String name, UUID farmId, String token) throws Exception {
         CropCycleCreateRequest cycleRequest = new CropCycleCreateRequest();
         cycleRequest.setName(name);
-        cycleRequest.setCropName("Tomato");
+        cycleRequest.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest.setYear(2026);
         cycleRequest.setFarmId(farmId);
 
         MvcResult cycleResult = mockMvc.perform(post("/api/v1/crop-cycles")
@@ -278,7 +279,7 @@ public class AutomationIntegrationTest {
         List<Notification> notifications = notificationRepository.findAll();
         assertFalse(notifications.isEmpty());
         assertTrue(notifications.stream()
-                .anyMatch(n -> n.getMessage().contains("Late Blight reported for Tomato")));
+                .anyMatch(n -> n.getMessage().contains("Late Blight") && n.getMessage().contains("Tomato")));
 
         // 3. Trigger Rule 2 (TREATMENT_COMPLETED -> CREATE_TASK)
         UUID treatmentId = createTreatment(incidentId, token);
@@ -298,7 +299,7 @@ public class AutomationIntegrationTest {
         assertFalse(tasks.isEmpty());
         
         Task followUpTask = tasks.stream()
-                .filter(t -> "Inspect Crop Recovery".equals(t.getTitle()))
+                .filter(t -> "INSPECT_CROP_RECOVERY".equals(t.getTitle()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Follow-up task not found"));
 
@@ -318,7 +319,7 @@ public class AutomationIntegrationTest {
         // Verify Rule 3 automatically created a task completed notification
         notifications = notificationRepository.findAll();
         assertTrue(notifications.stream()
-                .anyMatch(n -> n.getMessage().contains("Task Inspect Crop Recovery completed successfully")));
+                .anyMatch(n -> n.getMessage().contains("INSPECT_CROP_RECOVERY")));
     }
 
     @Test

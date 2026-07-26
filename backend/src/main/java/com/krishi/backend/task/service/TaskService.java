@@ -2,10 +2,14 @@ package com.krishi.backend.task.service;
 
 import com.krishi.backend.common.event.DomainEventPublisher;
 import com.krishi.backend.common.security.CustomUserDetails;
+import com.krishi.backend.cropplanting.entity.CropPlanting;
+import com.krishi.backend.cropplanting.repository.CropPlantingRepository;
 import com.krishi.backend.task.dto.TaskCreateRequest;
 import com.krishi.backend.task.dto.TaskResponse;
 import com.krishi.backend.task.entity.Task;
+import com.krishi.backend.task.entity.TaskSource;
 import com.krishi.backend.task.entity.TaskStatus;
+import com.krishi.backend.task.entity.TaskType;
 import com.krishi.backend.task.event.TaskCancelledEvent;
 import com.krishi.backend.task.event.TaskCompletedEvent;
 import com.krishi.backend.task.event.TaskCreatedEvent;
@@ -29,25 +33,41 @@ import java.util.stream.Collectors;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final CropPlantingRepository cropPlantingRepository;
     private final TreatmentRepository treatmentRepository;
     private final TaskMapper taskMapper;
     private final DomainEventPublisher domainEventPublisher;
 
     /**
-     * Creates a new Task for a specific Treatment plan.
+     * Creates a new Task for a CropPlanting (with optional Treatment link).
      */
     @Transactional
     public TaskResponse createTask(TaskCreateRequest request, CustomUserDetails userDetails) {
         validateFarmerRole(userDetails);
 
-        Treatment treatment = treatmentRepository.findById(request.getTreatmentId())
-                .orElseThrow(() -> new IllegalArgumentException("Treatment not found with id: " + request.getTreatmentId()));
+        CropPlanting cropPlanting = cropPlantingRepository.findById(request.getCropPlantingId())
+                .orElseThrow(() -> new IllegalArgumentException("Crop planting not found with id: " + request.getCropPlantingId()));
 
-        validateTreatmentOwnership(treatment, userDetails.getUserId());
+        validateCropPlantingOwnership(cropPlanting, userDetails.getUserId());
+
+        Treatment treatment = null;
+        if (request.getTreatmentId() != null) {
+            treatment = treatmentRepository.findById(request.getTreatmentId())
+                    .orElseThrow(() -> new IllegalArgumentException("Treatment not found with id: " + request.getTreatmentId()));
+
+            // Domain Invariant: Treatment must belong to the same CropPlanting
+            UUID treatmentPlantingId = treatment.getDiseaseIncident().getCropPlanting().getId();
+            if (!treatmentPlantingId.equals(cropPlanting.getId())) {
+                throw new IllegalArgumentException("Cross-entity mismatch: Treatment does not belong to the specified crop planting.");
+            }
+        }
 
         Task task = new Task();
         task.setId(UUID.randomUUID());
+        task.setCropPlanting(cropPlanting);
         task.setTreatment(treatment);
+        task.setTaskType(request.getTaskType() != null ? request.getTaskType() : TaskType.OTHER);
+        task.setSource(TaskSource.MANUAL); // Provenance set by backend
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setDueDate(request.getDueDate());
@@ -60,7 +80,7 @@ public class TaskService {
         // Publish TaskCreatedEvent
         TaskCreatedEvent event = TaskCreatedEvent.builder()
                 .aggregateId(saved.getId())
-                .treatmentId(treatment.getId())
+                .treatmentId(treatment != null ? treatment.getId() : null)
                 .title(saved.getTitle())
                 .status(saved.getStatus())
                 .occurredAt(LocalDateTime.now())
@@ -81,7 +101,7 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
 
-        validateTreatmentOwnership(task.getTreatment(), userDetails.getUserId());
+        validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
         if (task.getStatus() != TaskStatus.PENDING) {
             throw new IllegalStateException("Cannot start a task that is in status: " + task.getStatus());
@@ -115,7 +135,7 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
 
-        validateTreatmentOwnership(task.getTreatment(), userDetails.getUserId());
+        validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
         if (task.getStatus() != TaskStatus.IN_PROGRESS) {
             throw new IllegalStateException("Cannot complete a task that is in status: " + task.getStatus());
@@ -152,15 +172,15 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
 
-        validateTreatmentOwnership(task.getTreatment(), userDetails.getUserId());
+        validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
-        if (task.getStatus() != TaskStatus.PENDING) {
+        if (task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.IN_PROGRESS) {
             throw new IllegalStateException("Cannot cancel a task that is in status: " + task.getStatus());
         }
 
         LocalDateTime now = LocalDateTime.now();
         task.setStatus(TaskStatus.CANCELLED);
-        task.setCompletedAt(now); // Recording actual cancellation timestamp
+        task.setCompletedAt(now);
         task.setUpdatedAt(now);
         task.setUpdatedBy(userDetails.getUserId());
 
@@ -189,9 +209,27 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
 
-        validateTreatmentOwnership(task.getTreatment(), userDetails.getUserId());
+        validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
         return taskMapper.toResponse(task);
+    }
+
+    /**
+     * Lists all tasks for a specific CropPlanting, enforcing ownership.
+     */
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getTasksByCropPlanting(UUID cropPlantingId, CustomUserDetails userDetails) {
+        validateFarmerRole(userDetails);
+
+        CropPlanting cropPlanting = cropPlantingRepository.findById(cropPlantingId)
+                .orElseThrow(() -> new IllegalArgumentException("Crop planting not found with id: " + cropPlantingId));
+
+        validateCropPlantingOwnership(cropPlanting, userDetails.getUserId());
+
+        List<Task> tasks = taskRepository.findByCropPlantingId(cropPlantingId);
+        return tasks.stream()
+                .map(taskMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -204,9 +242,22 @@ public class TaskService {
         Treatment treatment = treatmentRepository.findById(treatmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Treatment not found with id: " + treatmentId));
 
-        validateTreatmentOwnership(treatment, userDetails.getUserId());
+        validateCropPlantingOwnership(treatment.getDiseaseIncident().getCropPlanting(), userDetails.getUserId());
 
         List<Task> tasks = taskRepository.findByTreatmentId(treatmentId);
+        return tasks.stream()
+                .map(taskMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lists all tasks across all crop plantings for the authenticated farmer.
+     */
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getAllTasksForUser(CustomUserDetails userDetails) {
+        validateFarmerRole(userDetails);
+
+        List<Task> tasks = taskRepository.findByCropPlantingCropCycleFarmOwnerId(userDetails.getUserId());
         return tasks.stream()
                 .map(taskMapper::toResponse)
                 .collect(Collectors.toList());
@@ -227,11 +278,11 @@ public class TaskService {
     }
 
     /**
-     * Enforces ownership chain walk: Treatment -> DiseaseIncident -> CropPlanting -> CropCycle -> Farm -> Farmer (User)
+     * Enforces ownership chain: CropPlanting -> CropCycle -> Farm -> Farmer (User)
      */
-    private void validateTreatmentOwnership(Treatment treatment, UUID userId) {
-        if (!treatment.getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId().equals(userId)) {
-            throw new AccessDeniedException("Access denied. You do not own the parent farm of this treatment.");
+    private void validateCropPlantingOwnership(CropPlanting cropPlanting, UUID userId) {
+        if (!cropPlanting.getCropCycle().getFarm().getOwner().getId().equals(userId)) {
+            throw new AccessDeniedException("Access denied. You do not own the parent farm of this crop planting.");
         }
     }
 }

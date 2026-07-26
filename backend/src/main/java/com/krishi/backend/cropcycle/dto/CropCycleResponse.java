@@ -1,6 +1,7 @@
 package com.krishi.backend.cropcycle.dto;
 
 import com.krishi.backend.cropcycle.entity.CropCycleStatus;
+import com.krishi.backend.cropcycle.entity.SeasonType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,7 +13,9 @@ import java.util.UUID;
 public class CropCycleResponse {
     private UUID id;
     private String name;
-    private String cropName;
+    private SeasonType seasonType;
+    private Integer year;
+    private String notes;
     private CropCycleStatus status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;

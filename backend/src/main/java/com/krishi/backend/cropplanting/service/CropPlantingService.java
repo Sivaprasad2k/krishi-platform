@@ -50,6 +50,12 @@ public class CropPlantingService {
             throw new IllegalStateException("Cannot create a crop planting on a crop cycle that is completed or cancelled. Current status: " + cropCycle.getStatus());
         }
 
+        if (request.getPlantingDate() != null && request.getExpectedHarvestDate() != null) {
+            if (request.getExpectedHarvestDate().isBefore(request.getPlantingDate())) {
+                throw new IllegalArgumentException("Expected harvest date cannot be before planting date.");
+            }
+        }
+
         CropPlanting planting = new CropPlanting();
         planting.setId(UUID.randomUUID());
         planting.setCropCycle(cropCycle);
@@ -89,6 +95,18 @@ public class CropPlantingService {
                 .orElseThrow(() -> new IllegalArgumentException("Crop planting not found with id: " + plantingId));
 
         validateCycleOwnership(planting.getCropCycle(), userDetails.getUserId());
+
+        // FSM status guard
+        CropCycle cropCycle = planting.getCropCycle();
+        if (cropCycle.getStatus() == CropCycleStatus.COMPLETED || cropCycle.getStatus() == CropCycleStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot update a crop planting on a crop cycle that is completed or cancelled. Current status: " + cropCycle.getStatus());
+        }
+
+        if (request.getPlantingDate() != null && request.getExpectedHarvestDate() != null) {
+            if (request.getExpectedHarvestDate().isBefore(request.getPlantingDate())) {
+                throw new IllegalArgumentException("Expected harvest date cannot be before planting date.");
+            }
+        }
 
         planting.setCropName(request.getCropName());
         planting.setCropVariety(request.getCropVariety());

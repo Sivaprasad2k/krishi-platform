@@ -131,7 +131,8 @@ public class CropCycleIntegrationTest {
         // 3. Farmer A Creates a CropCycle (DRAFT)
         CropCycleCreateRequest cycleRequest = new CropCycleCreateRequest();
         cycleRequest.setName("Tomato Monsoon 2026");
-        cycleRequest.setCropName("Tomato");
+        cycleRequest.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest.setYear(2026);
         cycleRequest.setFarmId(farmId);
 
         MvcResult cycleResult = mockMvc.perform(post("/api/v1/crop-cycles")
@@ -210,7 +211,8 @@ public class CropCycleIntegrationTest {
         // 10. Create a second cycle and cancel it from ACTIVE
         CropCycleCreateRequest cycleRequest2 = new CropCycleCreateRequest();
         cycleRequest2.setName("Chilli Monsoon 2026");
-        cycleRequest2.setCropName("Chilli");
+        cycleRequest2.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest2.setYear(2026);
         cycleRequest2.setFarmId(farmId);
 
         MvcResult cycleResult2 = mockMvc.perform(post("/api/v1/crop-cycles")

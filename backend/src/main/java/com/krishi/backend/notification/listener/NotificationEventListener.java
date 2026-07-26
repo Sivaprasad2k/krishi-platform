@@ -15,6 +15,10 @@ import com.krishi.backend.task.repository.TaskRepository;
 import com.krishi.backend.treatment.entity.Treatment;
 import com.krishi.backend.treatment.event.*;
 import com.krishi.backend.treatment.repository.TreatmentRepository;
+import com.krishi.backend.cropplanting.entity.CropPlanting;
+import com.krishi.backend.cropplanting.event.CropPlantingCreatedEvent;
+import com.krishi.backend.cropplanting.event.CropPlantingUpdatedEvent;
+import com.krishi.backend.cropplanting.repository.CropPlantingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -34,6 +38,12 @@ public class NotificationEventListener {
     private final DiseaseIncidentRepository diseaseIncidentRepository;
     private final TreatmentRepository treatmentRepository;
     private final TaskRepository taskRepository;
+    private final CropPlantingRepository cropPlantingRepository;
+
+    private String escapeJson(String input) {
+        if (input == null) return "";
+        return input.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
 
     @EventListener
     @Transactional(propagation = Propagation.REQUIRED)
@@ -43,7 +53,8 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Crop cycle not found: " + event.aggregateId()));
         UUID userId = cycle.getFarm().getOwner().getId();
         String title = "Crop Cycle Started";
-        String message = "Crop cycle " + cycle.getName() + " has started.";
+        String message = String.format("{\"name\":\"%s\",\"seasonType\":\"%s\",\"year\":%d}",
+                escapeJson(cycle.getName()), cycle.getSeasonType(), cycle.getYear());
         notificationService.createNotification(userId, title, message, NotificationType.CROP_CYCLE_STARTED);
     }
 
@@ -55,7 +66,8 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Crop cycle not found: " + event.aggregateId()));
         UUID userId = cycle.getFarm().getOwner().getId();
         String title = "Crop Cycle Completed";
-        String message = "Crop cycle " + cycle.getName() + " has completed successfully.";
+        String message = String.format("{\"name\":\"%s\",\"seasonType\":\"%s\",\"year\":%d}",
+                escapeJson(cycle.getName()), cycle.getSeasonType(), cycle.getYear());
         notificationService.createNotification(userId, title, message, NotificationType.CROP_CYCLE_COMPLETED);
     }
 
@@ -67,7 +79,10 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Disease incident not found: " + event.aggregateId()));
         UUID userId = incident.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Disease Incident Reported";
-        String message = incident.getDiseaseName() + " reported for " + incident.getCropPlanting().getCropName() + " (" + incident.getCropPlanting().getCropVariety() + ")";
+        String message = String.format("{\"diseaseName\":\"%s\",\"cropName\":\"%s\",\"cropVariety\":\"%s\"}",
+                escapeJson(incident.getDiseaseName()),
+                escapeJson(incident.getCropPlanting().getCropName()),
+                escapeJson(incident.getCropPlanting().getCropVariety()));
         notificationService.createNotification(userId, title, message, NotificationType.DISEASE_REPORTED);
     }
 
@@ -79,7 +94,7 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Disease incident not found: " + event.aggregateId()));
         UUID userId = incident.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Disease Incident Under Review";
-        String message = incident.getDiseaseName() + " is now under review.";
+        String message = String.format("{\"diseaseName\":\"%s\"}", escapeJson(incident.getDiseaseName()));
         notificationService.createNotification(userId, title, message, NotificationType.DISEASE_UNDER_REVIEW);
     }
 
@@ -91,7 +106,7 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Disease incident not found: " + event.aggregateId()));
         UUID userId = incident.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Disease Incident Treated";
-        String message = incident.getDiseaseName() + " has been marked as treated.";
+        String message = String.format("{\"diseaseName\":\"%s\"}", escapeJson(incident.getDiseaseName()));
         notificationService.createNotification(userId, title, message, NotificationType.DISEASE_TREATED);
     }
 
@@ -103,7 +118,7 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Disease incident not found: " + event.aggregateId()));
         UUID userId = incident.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Disease Incident Closed";
-        String message = incident.getDiseaseName() + " incident has been closed.";
+        String message = String.format("{\"diseaseName\":\"%s\"}", escapeJson(incident.getDiseaseName()));
         notificationService.createNotification(userId, title, message, NotificationType.DISEASE_CLOSED);
     }
 
@@ -115,7 +130,7 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Treatment not found: " + event.aggregateId()));
         UUID userId = treatment.getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Treatment Planned";
-        String message = treatment.getTreatmentName() + " treatment plan created.";
+        String message = String.format("{\"treatmentName\":\"%s\"}", escapeJson(treatment.getTreatmentName()));
         notificationService.createNotification(userId, title, message, NotificationType.TREATMENT_PLANNED);
     }
 
@@ -127,7 +142,7 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Treatment not found: " + event.aggregateId()));
         UUID userId = treatment.getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Treatment Started";
-        String message = treatment.getTreatmentName() + " treatment started";
+        String message = String.format("{\"treatmentName\":\"%s\"}", escapeJson(treatment.getTreatmentName()));
         notificationService.createNotification(userId, title, message, NotificationType.TREATMENT_STARTED);
     }
 
@@ -139,7 +154,7 @@ public class NotificationEventListener {
                 .orElseThrow(() -> new IllegalArgumentException("Treatment not found: " + event.aggregateId()));
         UUID userId = treatment.getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Treatment Completed";
-        String message = treatment.getTreatmentName() + " treatment completed successfully";
+        String message = String.format("{\"treatmentName\":\"%s\"}", escapeJson(treatment.getTreatmentName()));
         notificationService.createNotification(userId, title, message, NotificationType.TREATMENT_COMPLETED);
     }
 
@@ -149,9 +164,12 @@ public class NotificationEventListener {
         log.debug("Notification handler caught TaskCreatedEvent for aggregate [{}]", event.aggregateId());
         Task task = taskRepository.findById(event.aggregateId())
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + event.aggregateId()));
-        UUID userId = task.getTreatment().getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
+        UUID userId = task.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Task Created";
-        String message = task.getTitle() + (task.getDueDate() != null ? " before " + task.getDueDate().toLocalDate() : "");
+        String message = String.format("{\"title\":\"%s\",\"dueDate\":\"%s\",\"taskType\":\"%s\"}",
+                escapeJson(task.getTitle()),
+                task.getDueDate() != null ? task.getDueDate().toLocalDate().toString() : "",
+                task.getTaskType() != null ? task.getTaskType().name() : "GENERAL");
         notificationService.createNotification(userId, title, message, NotificationType.TASK_CREATED);
     }
 
@@ -161,9 +179,9 @@ public class NotificationEventListener {
         log.debug("Notification handler caught TaskStartedEvent for aggregate [{}]", event.aggregateId());
         Task task = taskRepository.findById(event.aggregateId())
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + event.aggregateId()));
-        UUID userId = task.getTreatment().getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
+        UUID userId = task.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Task Started";
-        String message = "Task " + task.getTitle() + " is now in progress.";
+        String message = String.format("{\"title\":\"%s\"}", escapeJson(task.getTitle()));
         notificationService.createNotification(userId, title, message, NotificationType.TASK_STARTED);
     }
 
@@ -173,9 +191,9 @@ public class NotificationEventListener {
         log.debug("Notification handler caught TaskCompletedEvent for aggregate [{}]", event.aggregateId());
         Task task = taskRepository.findById(event.aggregateId())
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + event.aggregateId()));
-        UUID userId = task.getTreatment().getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
+        UUID userId = task.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Task Completed";
-        String message = "Task completed successfully";
+        String message = String.format("{\"title\":\"%s\"}", escapeJson(task.getTitle()));
         notificationService.createNotification(userId, title, message, NotificationType.TASK_COMPLETED);
     }
 
@@ -185,9 +203,35 @@ public class NotificationEventListener {
         log.debug("Notification handler caught TaskCancelledEvent for aggregate [{}]", event.aggregateId());
         Task task = taskRepository.findById(event.aggregateId())
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + event.aggregateId()));
-        UUID userId = task.getTreatment().getDiseaseIncident().getCropPlanting().getCropCycle().getFarm().getOwner().getId();
+        UUID userId = task.getCropPlanting().getCropCycle().getFarm().getOwner().getId();
         String title = "Task Cancelled";
-        String message = "Task " + task.getTitle() + " has been cancelled.";
+        String message = String.format("{\"title\":\"%s\"}", escapeJson(task.getTitle()));
         notificationService.createNotification(userId, title, message, NotificationType.TASK_CANCELLED);
+    }
+
+    @EventListener
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void handleCropPlantingCreated(CropPlantingCreatedEvent event) {
+        log.debug("Notification handler caught CropPlantingCreatedEvent for aggregate [{}]", event.aggregateId());
+        CropPlanting planting = cropPlantingRepository.findById(event.aggregateId())
+                .orElseThrow(() -> new IllegalArgumentException("Crop planting not found: " + event.aggregateId()));
+        UUID userId = planting.getCropCycle().getFarm().getOwner().getId();
+        String title = "Crop Planting Added";
+        String message = String.format("{\"cropName\":\"%s\",\"cropVariety\":\"%s\"}",
+                escapeJson(planting.getCropName()), escapeJson(planting.getCropVariety()));
+        notificationService.createNotification(userId, title, message, NotificationType.CROP_PLANTING_CREATED);
+    }
+
+    @EventListener
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void handleCropPlantingUpdated(CropPlantingUpdatedEvent event) {
+        log.debug("Notification handler caught CropPlantingUpdatedEvent for aggregate [{}]", event.aggregateId());
+        CropPlanting planting = cropPlantingRepository.findById(event.aggregateId())
+                .orElseThrow(() -> new IllegalArgumentException("Crop planting not found: " + event.aggregateId()));
+        UUID userId = planting.getCropCycle().getFarm().getOwner().getId();
+        String title = "Crop Planting Updated";
+        String message = String.format("{\"cropName\":\"%s\",\"cropVariety\":\"%s\"}",
+                escapeJson(planting.getCropName()), escapeJson(planting.getCropVariety()));
+        notificationService.createNotification(userId, title, message, NotificationType.CROP_PLANTING_UPDATED);
     }
 }

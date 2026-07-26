@@ -1,6 +1,6 @@
 package com.krishi.backend.cropcycle.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.krishi.backend.cropcycle.entity.SeasonType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,11 +11,15 @@ import java.util.UUID;
 @Setter
 public class CropCycleCreateRequest {
 
-    @NotBlank(message = "Crop cycle name is required")
     private String name;
 
-    @NotBlank(message = "Crop name is required")
-    private String cropName;
+    @NotNull(message = "Season type is required")
+    private SeasonType seasonType;
+
+    @NotNull(message = "Year is required")
+    private Integer year;
+
+    private String notes;
 
     @NotNull(message = "Farm ID is required")
     private UUID farmId;

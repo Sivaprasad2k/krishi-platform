@@ -1,0 +1,11 @@
+package com.krishi.backend.common.exception;
+
+public enum ErrorCode {
+    VALIDATION_FAILED,
+    ACCESS_DENIED,
+    RESOURCE_NOT_FOUND,
+    INVALID_STATE_TRANSITION,
+    CROSS_ENTITY_MISMATCH,
+    UNAUTHORIZED,
+    INTERNAL_SERVER_ERROR
+}

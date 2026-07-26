@@ -41,6 +41,7 @@ apiClient.interceptors.response.use(
     // Format error response so callers receive readable details
     const apiError = {
       message: error.response?.data?.message || error.message || 'An unexpected error occurred',
+      errorCode: error.response?.data?.errorCode || 'INTERNAL_SERVER_ERROR',
       status: error.response?.status || 500,
       data: error.response?.data?.data || null,
       success: false,

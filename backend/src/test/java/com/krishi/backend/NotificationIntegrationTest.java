@@ -172,7 +172,8 @@ public class NotificationIntegrationTest {
     private UUID createCropCycleAndStart(String name, UUID farmId, String token) throws Exception {
         CropCycleCreateRequest cycleRequest = new CropCycleCreateRequest();
         cycleRequest.setName(name);
-        cycleRequest.setCropName("Tomato");
+        cycleRequest.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest.setYear(2026);
         cycleRequest.setFarmId(farmId);
 
         MvcResult cycleResult = mockMvc.perform(post("/api/v1/crop-cycles")
@@ -248,8 +249,9 @@ public class NotificationIntegrationTest {
         return UUID.fromString(responseNode.get("data").get("id").asText());
     }
 
-    private UUID createTask(UUID treatmentId, String token) throws Exception {
+    private UUID createTask(UUID plantingId, UUID treatmentId, String token) throws Exception {
         TaskCreateRequest taskRequest = new TaskCreateRequest();
+        taskRequest.setCropPlantingId(plantingId);
         taskRequest.setTreatmentId(treatmentId);
         taskRequest.setTitle("Spray Mancozeb");
         taskRequest.setDescription("Apply Mancozeb 2g/L to affected plants");
@@ -277,7 +279,7 @@ public class NotificationIntegrationTest {
         UUID plantingId = createCropPlanting(cycleId, tokenA);
         UUID incidentId = reportDiseaseIncident(plantingId, tokenA);
         UUID treatmentId = createTreatment(incidentId, tokenA);
-        UUID taskId = createTask(treatmentId, tokenA);
+        UUID taskId = createTask(plantingId, treatmentId, tokenA);
 
         // At this point, the listeners should have created:
         // - CROP_CYCLE_STARTED notification

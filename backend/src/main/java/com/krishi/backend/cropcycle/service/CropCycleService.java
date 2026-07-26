@@ -49,7 +49,9 @@ public class CropCycleService {
         CropCycle cropCycle = new CropCycle();
         cropCycle.setId(UUID.randomUUID());
         cropCycle.setName(request.getName());
-        cropCycle.setCropName(request.getCropName());
+        cropCycle.setSeasonType(request.getSeasonType());
+        cropCycle.setYear(request.getYear());
+        cropCycle.setNotes(request.getNotes());
         cropCycle.setStatus(CropCycleStatus.DRAFT);
         cropCycle.setFarm(farm);
         cropCycle.setCreatedAt(LocalDateTime.now());
@@ -62,7 +64,8 @@ public class CropCycleService {
                 .aggregateId(saved.getId())
                 .farmId(farm.getId())
                 .name(saved.getName())
-                .cropName(saved.getCropName())
+                .seasonType(saved.getSeasonType())
+                .year(saved.getYear())
                 .status(saved.getStatus())
                 .occurredAt(LocalDateTime.now())
                 .createdBy(userDetails.getUserId())

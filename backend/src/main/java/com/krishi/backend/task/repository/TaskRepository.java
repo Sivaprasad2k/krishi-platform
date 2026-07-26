@@ -14,6 +14,14 @@ import java.util.UUID;
 public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     /**
+     * Find all tasks associated with a specific crop planting.
+     *
+     * @param cropPlantingId the crop planting ID
+     * @return the list of tasks
+     */
+    List<Task> findByCropPlantingId(UUID cropPlantingId);
+
+    /**
      * Find all tasks associated with a specific treatment.
      *
      * @param treatmentId the treatment ID
@@ -21,6 +29,21 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
      */
     List<Task> findByTreatmentId(UUID treatmentId);
 
-    @Query("SELECT COUNT(t) FROM Task t WHERE t.treatment.diseaseIncident.cropPlanting.cropCycle.farm.owner.id = :ownerId AND t.status IN :statuses")
+    /**
+     * Find all tasks belonging to any crop planting on farms owned by the given user.
+     *
+     * @param ownerId the farmer user ID
+     * @return the list of tasks
+     */
+    List<Task> findByCropPlantingCropCycleFarmOwnerId(UUID ownerId);
+
+    /**
+     * Count pending/in-progress tasks for farms owned by the given user.
+     *
+     * @param ownerId the farmer user ID
+     * @param statuses list of active statuses (PENDING, IN_PROGRESS)
+     * @return count of active tasks
+     */
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.cropPlanting.cropCycle.farm.owner.id = :ownerId AND t.status IN :statuses")
     long countPendingTasksByOwner(@Param("ownerId") UUID ownerId, @Param("statuses") List<TaskStatus> statuses);
 }

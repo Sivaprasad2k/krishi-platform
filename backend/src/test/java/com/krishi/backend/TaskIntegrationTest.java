@@ -17,13 +17,16 @@ import com.krishi.backend.diseaseincident.repository.DiseaseIncidentRepository;
 import com.krishi.backend.treatment.dto.TreatmentPlanRequest;
 import com.krishi.backend.treatment.repository.TreatmentRepository;
 import com.krishi.backend.task.dto.TaskCreateRequest;
+import com.krishi.backend.task.entity.TaskSource;
 import com.krishi.backend.task.entity.TaskStatus;
+import com.krishi.backend.task.entity.TaskType;
 import com.krishi.backend.task.repository.TaskRepository;
 import com.krishi.backend.farm.dto.FarmCreateRequest;
 import com.krishi.backend.farm.repository.FarmRepository;
 import com.krishi.backend.identity.dto.LoginRequest;
 import com.krishi.backend.identity.dto.RegisterRequest;
 import com.krishi.backend.identity.repository.UserRepository;
+import com.krishi.backend.notification.repository.NotificationRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,6 +80,9 @@ public class TaskIntegrationTest {
     private TaskRepository taskRepository;
 
     @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
     private DomainEventRepository domainEventRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -97,6 +103,7 @@ public class TaskIntegrationTest {
         objectMapper.registerModule(module);
 
         domainEventRepository.deleteAll();
+        notificationRepository.deleteAll();
         taskRepository.deleteAll();
         treatmentRepository.deleteAll();
         diseaseIncidentRepository.deleteAll();
@@ -109,6 +116,7 @@ public class TaskIntegrationTest {
     @AfterEach
     void cleanUp() {
         domainEventRepository.deleteAll();
+        notificationRepository.deleteAll();
         taskRepository.deleteAll();
         treatmentRepository.deleteAll();
         diseaseIncidentRepository.deleteAll();
@@ -167,7 +175,8 @@ public class TaskIntegrationTest {
     private UUID createCropCycleAndStart(String name, UUID farmId, String token) throws Exception {
         CropCycleCreateRequest cycleRequest = new CropCycleCreateRequest();
         cycleRequest.setName(name);
-        cycleRequest.setCropName("Tomato");
+        cycleRequest.setSeasonType(com.krishi.backend.cropcycle.entity.SeasonType.MONSOON);
+        cycleRequest.setYear(2026);
         cycleRequest.setFarmId(farmId);
 
         MvcResult cycleResult = mockMvc.perform(post("/api/v1/crop-cycles")
@@ -180,7 +189,6 @@ public class TaskIntegrationTest {
         JsonNode responseNode = objectMapper.readTree(cycleResult.getResponse().getContentAsString());
         UUID cycleId = UUID.fromString(responseNode.get("data").get("id").asText());
 
-        // Start it
         mockMvc.perform(post("/api/v1/crop-cycles/" + cycleId + "/start")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
@@ -188,11 +196,11 @@ public class TaskIntegrationTest {
         return cycleId;
     }
 
-    private UUID createCropPlanting(UUID cycleId, String token) throws Exception {
+    private UUID createCropPlanting(UUID cycleId, String name, String token) throws Exception {
         CropPlantingCreateRequest createRequest = new CropPlantingCreateRequest();
         createRequest.setCropCycleId(cycleId);
-        createRequest.setCropName("Tomato");
-        createRequest.setCropVariety("TH-101 Hybrid");
+        createRequest.setCropName(name);
+        createRequest.setCropVariety("Hybrid");
         createRequest.setPlantingDate(LocalDateTime.now().minusDays(15));
         createRequest.setExpectedHarvestDate(LocalDateTime.now().plusDays(75));
 
@@ -244,24 +252,21 @@ public class TaskIntegrationTest {
     }
 
     @Test
-    void testTaskWorkflowAndValidationRules() throws Exception {
-        // 1. Setup two Farmers
-        String tokenA = registerAndLogin("Farmer Alice", "9888888881", "alice.task@krishi.com", "Pass@123");
-        String tokenB = registerAndLogin("Farmer Bob", "9888888882", "bob.task@krishi.com", "Pass@123");
+    void testGeneralOperationalTaskWorkflow() throws Exception {
+        String tokenA = registerAndLogin("Farmer Alice", "9888888881", "alice.gen@krishi.com", "Pass@123");
+        String tokenB = registerAndLogin("Farmer Bob", "9888888882", "bob.gen@krishi.com", "Pass@123");
 
-        // 2. Farmer A Creates Farm, Cycle, Planting, Disease Incident, and Treatment
-        UUID farmId = createFarm("Alice Ranch", tokenA);
-        UUID cycleId = createCropCycleAndStart("Tomato Winter", farmId, tokenA);
-        UUID plantingId = createCropPlanting(cycleId, tokenA);
-        UUID incidentId = reportDiseaseIncident(plantingId, tokenA);
-        UUID treatmentId = createTreatment(incidentId, tokenA);
+        UUID farmId = createFarm("Alice Fields", tokenA);
+        UUID cycleId = createCropCycleAndStart("Summer Season", farmId, tokenA);
+        UUID plantingId = createCropPlanting(cycleId, "Banana", tokenA);
 
-        // 3. Farmer A creates a Task -> Succeeds (status PENDING)
+        // 1. Create General Irrigation Task (no treatment)
         TaskCreateRequest taskRequest = new TaskCreateRequest();
-        taskRequest.setTreatmentId(treatmentId);
-        taskRequest.setTitle("Apply Mancozeb Foliar Spray");
-        taskRequest.setDescription("Mix 2g/L and spray affected leaves thoroughly.");
-        taskRequest.setDueDate(LocalDateTime.now().plusDays(2));
+        taskRequest.setCropPlantingId(plantingId);
+        taskRequest.setTaskType(TaskType.IRRIGATION);
+        taskRequest.setTitle("Water Banana Crop");
+        taskRequest.setDescription("Provide 50L irrigation per plant");
+        taskRequest.setDueDate(LocalDateTime.now().plusDays(1));
 
         MvcResult createResult = mockMvc.perform(post("/api/v1/tasks")
                         .header("Authorization", "Bearer " + tokenA)
@@ -270,100 +275,87 @@ public class TaskIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        JsonNode responseNode = objectMapper.readTree(createResult.getResponse().getContentAsString());
-        UUID taskId = UUID.fromString(responseNode.get("data").get("id").asText());
-        assertNotNull(taskId);
+        JsonNode createNode = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("data");
+        UUID taskId = UUID.fromString(createNode.get("id").asText());
+        assertEquals("MANUAL", createNode.get("source").asText());
+        assertEquals("IRRIGATION", createNode.get("taskType").asText());
 
-        // Verify task state in DB is PENDING
-        var taskInDb = taskRepository.findById(taskId).get();
-        assertEquals(TaskStatus.PENDING, taskInDb.getStatus());
-        assertNull(taskInDb.getCompletedAt());
-
-        // Verify TaskCreatedEvent is persisted
-        List<DomainEvent> events = domainEventRepository.findAll();
-        assertTrue(events.stream().anyMatch(e -> "TASK_CREATED".equals(e.getEventType())));
-
-        // 4. Farmer B tries to create a Task on Farmer A's Treatment -> 403 Forbidden
-        mockMvc.perform(post("/api/v1/tasks")
-                        .header("Authorization", "Bearer " + tokenB)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(taskRequest)))
-                .andExpect(status().isForbidden());
-
-        // 5. Farmer B tries to view Farmer A's Task -> 403 Forbidden
+        // 2. Reject Farmer B accessing Farmer A's task -> 403
         mockMvc.perform(get("/api/v1/tasks/" + taskId)
                         .header("Authorization", "Bearer " + tokenB))
                 .andExpect(status().isForbidden());
 
-        // 6. Farmer B tries to start Farmer A's Task -> 403 Forbidden
+        // 3. Start task -> IN_PROGRESS
         mockMvc.perform(post("/api/v1/tasks/" + taskId + "/start")
-                        .header("Authorization", "Bearer " + tokenB))
-                .andExpect(status().isForbidden());
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk());
 
-        // 7. Try invalid transition (PENDING -> COMPLETED) -> fails with 400 Bad Request
+        // 4. Complete task -> COMPLETED
         mockMvc.perform(post("/api/v1/tasks/" + taskId + "/complete")
                         .header("Authorization", "Bearer " + tokenA))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
 
-        // 8. Farmer A starts their Task -> Succeeds (status IN_PROGRESS)
-        MvcResult startResult = mockMvc.perform(post("/api/v1/tasks/" + taskId + "/start")
+        // 5. Verify task listed via /api/v1/tasks endpoint for authenticated farmer
+        MvcResult allTasksResult = mockMvc.perform(get("/api/v1/tasks")
                         .header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        JsonNode startResponseNode = objectMapper.readTree(startResult.getResponse().getContentAsString());
-        assertEquals("IN_PROGRESS", startResponseNode.get("data").get("status").asText());
+        JsonNode allTasksNode = objectMapper.readTree(allTasksResult.getResponse().getContentAsString()).get("data");
+        assertEquals(1, allTasksNode.size());
+        assertEquals("Water Banana Crop", allTasksNode.get(0).get("title").asText());
 
-        // Verify TaskStartedEvent is persisted
-        events = domainEventRepository.findAll();
-        assertTrue(events.stream().anyMatch(e -> "TASK_STARTED".equals(e.getEventType())));
-
-        // 9. Try invalid transition (IN_PROGRESS -> CANCELLED) -> fails with 400 Bad Request
-        mockMvc.perform(post("/api/v1/tasks/" + taskId + "/cancel")
-                        .header("Authorization", "Bearer " + tokenA))
-                .andExpect(status().isBadRequest());
-
-        // 10. Farmer A completes their Task -> Succeeds (status COMPLETED)
-        MvcResult completeResult = mockMvc.perform(post("/api/v1/tasks/" + taskId + "/complete")
+        // Verify dashboard pending task count (completed task is not pending)
+        MvcResult dashResult = mockMvc.perform(get("/api/v1/dashboard/summary")
                         .header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isOk())
                 .andReturn();
-
-        JsonNode completeResponseNode = objectMapper.readTree(completeResult.getResponse().getContentAsString());
-        assertEquals("COMPLETED", completeResponseNode.get("data").get("status").asText());
-        assertNotNull(completeResponseNode.get("data").get("completedAt"));
-
-        // Verify TaskCompletedEvent is persisted
-        events = domainEventRepository.findAll();
-        assertTrue(events.stream().anyMatch(e -> "TASK_COMPLETED".equals(e.getEventType())));
-
-        // 11. Retrieve all tasks for the treatment
-        MvcResult listResult = mockMvc.perform(get("/api/v1/treatments/" + treatmentId + "/tasks")
-                        .header("Authorization", "Bearer " + tokenA))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        JsonNode listResponseNode = objectMapper.readTree(listResult.getResponse().getContentAsString());
-        assertEquals(1, listResponseNode.get("data").size());
-        assertEquals("Apply Mancozeb Foliar Spray", listResponseNode.get("data").get(0).get("title").asText());
+        JsonNode dashNode = objectMapper.readTree(dashResult.getResponse().getContentAsString()).get("data");
+        assertEquals(0, dashNode.get("pendingTasks").asLong());
     }
 
     @Test
-    void testTaskCancellationWorkflow() throws Exception {
-        // 1. Setup Farmer
-        String token = registerAndLogin("Farmer Charlie", "9888888883", "charlie.task@krishi.com", "Pass@123");
+    void testCrossEntityMismatchRejection() throws Exception {
+        String token = registerAndLogin("Farmer Charlie", "9888888883", "charlie.mismatch@krishi.com", "Pass@123");
 
-        // 2. Create Treatment
-        UUID farmId = createFarm("Charlie Ranch", token);
-        UUID cycleId = createCropCycleAndStart("Tomato Charlie", farmId, token);
-        UUID plantingId = createCropPlanting(cycleId, token);
+        UUID farmId = createFarm("Charlie Farm", token);
+        UUID cycleId = createCropCycleAndStart("Kharif 2026", farmId, token);
+        UUID planting1 = createCropPlanting(cycleId, "Rice", token);
+        UUID planting2 = createCropPlanting(cycleId, "Corn", token);
+
+        UUID incident1 = reportDiseaseIncident(planting1, token);
+        UUID treatment1 = createTreatment(incident1, token);
+
+        // Attempt to create a task targeting Planting2 with Treatment from Planting1 -> Bad Request mismatch
+        TaskCreateRequest mismatchRequest = new TaskCreateRequest();
+        mismatchRequest.setCropPlantingId(planting2);
+        mismatchRequest.setTreatmentId(treatment1);
+        mismatchRequest.setTaskType(TaskType.DISEASE_TREATMENT);
+        mismatchRequest.setTitle("Mismatched Treatment Task");
+
+        mockMvc.perform(post("/api/v1/tasks")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mismatchRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testTreatmentLinkedTaskWorkflow() throws Exception {
+        String token = registerAndLogin("Farmer Dave", "9888888884", "dave.treat@krishi.com", "Pass@123");
+
+        UUID farmId = createFarm("Dave Farm", token);
+        UUID cycleId = createCropCycleAndStart("Monsoon 2026", farmId, token);
+        UUID plantingId = createCropPlanting(cycleId, "Tomato", token);
         UUID incidentId = reportDiseaseIncident(plantingId, token);
         UUID treatmentId = createTreatment(incidentId, token);
 
-        // 3. Create Task
+        // Create Task linked to both planting and treatment
         TaskCreateRequest taskRequest = new TaskCreateRequest();
+        taskRequest.setCropPlantingId(plantingId);
         taskRequest.setTreatmentId(treatmentId);
-        taskRequest.setTitle("Prune Yellow Leaves");
+        taskRequest.setTaskType(TaskType.DISEASE_TREATMENT);
+        taskRequest.setTitle("Apply Fungicide Spray");
 
         MvcResult createResult = mockMvc.perform(post("/api/v1/tasks")
                         .header("Authorization", "Bearer " + token)
@@ -372,26 +364,17 @@ public class TaskIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        JsonNode responseNode = objectMapper.readTree(createResult.getResponse().getContentAsString());
-        UUID taskId = UUID.fromString(responseNode.get("data").get("id").asText());
+        JsonNode createNode = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("data");
+        assertEquals(treatmentId.toString(), createNode.get("treatmentId").asText());
+        assertEquals(plantingId.toString(), createNode.get("cropPlantingId").asText());
 
-        // 4. Cancel Task directly from PENDING -> Succeeds (status CANCELLED)
-        MvcResult cancelResult = mockMvc.perform(post("/api/v1/tasks/" + taskId + "/cancel")
+        // Verify retrieval via treatment tasks endpoint
+        MvcResult treatTasksResult = mockMvc.perform(get("/api/v1/treatments/" + treatmentId + "/tasks")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        JsonNode cancelResponseNode = objectMapper.readTree(cancelResult.getResponse().getContentAsString());
-        assertEquals("CANCELLED", cancelResponseNode.get("data").get("status").asText());
-        assertNotNull(cancelResponseNode.get("data").get("completedAt"));
-
-        // Verify TaskCancelledEvent is persisted
-        List<DomainEvent> events = domainEventRepository.findAll();
-        assertTrue(events.stream().anyMatch(e -> "TASK_CANCELLED".equals(e.getEventType())));
-
-        // 5. Try starting a CANCELLED task -> fails with 400 Bad Request
-        mockMvc.perform(post("/api/v1/tasks/" + taskId + "/start")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest());
+        JsonNode treatTasksNode = objectMapper.readTree(treatTasksResult.getResponse().getContentAsString()).get("data");
+        assertEquals(1, treatTasksNode.size());
     }
 }

@@ -1,35 +1,253 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+Tamil:wght@300;400;500;600;700;800;900&family=Noto+Sans+Malayalam:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
-  --color-emerald-50: #ecfdf5;
-  --color-emerald-100: #d1fae5;
-  --color-emerald-200: #a7f3d0;
+  --font-sans: "Outfit", "Noto Sans Tamil", "Noto Sans Malayalam", "Noto Sans Devanagari", system-ui, -apple-system, sans-serif;
+  --color-emerald-50: #f0fdf4;
+  --color-emerald-100: #dcfce7;
+  --color-emerald-200: #bbf7d0;
   --color-emerald-500: #10b981;
   --color-emerald-600: #059669;
   --color-emerald-700: #047857;
   --color-emerald-800: #065f46;
   --color-emerald-900: #064e3b;
-  --color-emerald-750: #046c4e;
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
 }
 
-/* Custom micro-animations & helpers */
+:root {
+  /* Brand Tokens */
+  --krishi-brand-deep: #14532D;
+  --krishi-brand-primary: #087A55;
+  --krishi-brand-primary-hover: #066747;
+
+  /* Canvas & Surface Tokens */
+  --krishi-canvas: #F0F7F1;
+  --krishi-surface: #FFFFFF;
+  --krishi-surface-soft: #E3F2E6;
+  --krishi-surface-selected: #DCFCE7;
+
+  /* Typography Tokens */
+  --krishi-text-primary: #222222;
+  --krishi-text-secondary: #525252;
+  --krishi-text-muted: #6B7280;
+
+  /* Border Tokens */
+  --krishi-border: #C9DCCB;
+  --krishi-border-strong: #A8CBB0;
+
+  /* Operational Semantic Tokens */
+  --krishi-success: #16A34A;
+  --krishi-success-bg: #F0F7F1;
+  --krishi-warning: #D97706;
+  --krishi-warning-bg: #FFFBEB;
+  --krishi-danger: #DC2626;
+  --krishi-danger-bg: #FEF2F2;
+  --krishi-info: #2563EB;
+  --krishi-info-bg: #EFF6FF;
+
+  /* Legacy Fallbacks */
+  --krishi-bg: #F0F7F1;
+  --krishi-sidebar-bg: #14532D;
+  --krishi-sidebar-text: #ECFDF3;
+  --krishi-sidebar-selected-bg: #DCFCE7;
+  --krishi-sidebar-selected-text: #14532D;
+  --krishi-primary: #087A55;
+  --krishi-primary-hover: #066747;
+  --krishi-primary-dark: #14532D;
+  --krishi-surface-secondary: #F6FAF7;
+  --krishi-text-disabled: #9CA3AF;
+  --color-success: #16A34A;
+  --color-success-bg: #F0F7F1;
+  --color-warning: #D97706;
+  --color-warning-bg: #FFFBEB;
+  --color-danger: #DC2626;
+  --color-danger-bg: #FEF2F2;
+  --color-info: #2563EB;
+  --color-info-bg: #EFF6FF;
+}
+
+/* Base accessibility & foundation rules */
+html, body {
+  font-size: 16px;
+  font-family: var(--font-sans);
+  background-color: var(--krishi-canvas);
+  color: var(--krishi-text-primary);
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Krishi utility classes */
+.bg-krishi-sidebar {
+  background-color: #14532D;
+}
+
+.text-krishi-sidebar-nav {
+  color: #ECFDF3;
+}
+
+.bg-krishi-sidebar-selected {
+  background-color: #DCFCE7;
+  color: #14532D;
+}
+
+.bg-krishi-canvas {
+  background-color: #F0F7F1;
+}
+
+.bg-krishi-surface {
+  background-color: #FFFFFF;
+}
+
+.bg-krishi-surface-soft {
+  background-color: #E3F2E6;
+}
+
+.bg-krishi-selected {
+  background-color: #DCFCE7;
+}
+
+.border-krishi {
+  border-color: #C9DCCB;
+}
+
+.border-krishi-strong {
+  border-color: #A8CBB0;
+}
+
+/* Typography Scale Utility Classes */
+.text-krishi-page-title {
+  font-size: 1.75rem; /* 28px */
+  line-height: 2.25rem;
+  font-weight: 800;
+  color: var(--krishi-text-primary);
+}
+
+@media (min-width: 768px) {
+  .text-krishi-page-title {
+    font-size: 2rem; /* 32px */
+    line-height: 2.5rem;
+  }
+}
+
+.text-krishi-section-title {
+  font-size: 1.25rem; /* 20px */
+  line-height: 1.75rem;
+  font-weight: 800;
+  color: var(--krishi-text-primary);
+}
+
+@media (min-width: 768px) {
+  .text-krishi-section-title {
+    font-size: 1.5rem; /* 24px */
+    line-height: 2rem;
+  }
+}
+
+.text-krishi-card-title {
+  font-size: 1.0625rem; /* 17px */
+  line-height: 1.5rem;
+  font-weight: 700;
+  color: var(--krishi-text-primary);
+}
+
+.text-krishi-body {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.375rem;
+  font-weight: 500;
+  color: var(--krishi-text-secondary);
+}
+
+@media (min-width: 768px) {
+  .text-krishi-body {
+    font-size: 1rem; /* 16px */
+    line-height: 1.5rem;
+  }
+}
+
+.text-krishi-label {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.375rem;
+  font-weight: 700;
+  color: var(--krishi-text-primary);
+}
+
+.text-krishi-meta {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.125rem;
+  font-weight: 500;
+  color: var(--krishi-text-muted);
+}
+
+/* Spacing Container Utilities */
+.krishi-container {
+  width: 100%;
+  max-width: 64rem; /* max-w-5xl */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.krishi-card {
+  background-color: var(--krishi-surface);
+  border: 1px solid var(--krishi-border);
+  border-radius: 1rem;
+  padding: 1.25rem; /* 20px */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+@media (min-width: 640px) {
+  .krishi-card {
+    padding: 1.5rem; /* 24px */
+  }
+}
+
+/* Enforce 16px minimum text size on input fields to prevent auto-zoom on mobile */
+input, select, textarea, button {
+  font-size: 16px !important;
+}
+
+/* Minimum 48px touch targets for farmer interactions */
+.btn-farmer {
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Highly visible keyboard focus rings */
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 3px solid #059669;
+  outline-offset: 2px;
+}
+
+/* Optimize wrapping and readability for regional language content */
+span, p, h1, h2, h3, h4, h5, h6, select, button {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+/* Micro-animations */
 .animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -45,24 +263,15 @@
 
 /* Smooth active state transitions */
 button, select, input, a {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Base accessibility rules */
-html, body {
-  font-size: 16px;
-  font-family: var(--font-sans);
-  -webkit-text-size-adjust: 100%;
+/* Reduced motion accessibility support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-
-/* Enforce 16px minimum text size on input fields to prevent visual zoom issues and maximize legibility */
-input, select, textarea, button {
-  font-size: 16px !important;
-}
-
-/* Highly visible keyboard focus rings for older/traditional farmers */
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
-  outline: 3px solid #10b981;
-  outline-offset: 2px;
-}
-

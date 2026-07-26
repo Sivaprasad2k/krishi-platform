@@ -1,10 +1,25 @@
 {
   "nav": {
     "home": "Home",
-    "crops": "My Crops",
-    "tasks": "Work To Do",
+    "farms": "Farms",
+    "crops": "Crops",
+    "tasks": "Work",
     "alerts": "Alerts",
-    "profile": "Profile"
+    "profile": "Profile",
+    "more": "More",
+    "problems": "Crop Problems",
+    "treatments": "Treatments"
+  },
+  "errors": {
+    "codes": {
+      "VALIDATION_FAILED": "Please check your inputs and try again.",
+      "ACCESS_DENIED": "Access denied. You do not have permission for this resource.",
+      "RESOURCE_NOT_FOUND": "The requested farm or crop record was not found.",
+      "INVALID_STATE_TRANSITION": "This operation cannot be performed in the current status.",
+      "CROSS_ENTITY_MISMATCH": "The selected treatment plan does not belong to this crop.",
+      "UNAUTHORIZED": "Your session has expired. Please login again.",
+      "INTERNAL_SERVER_ERROR": "A server error occurred. Please try again later."
+    }
   },
   "auth": {
     "login": "Login",
@@ -16,7 +31,33 @@
     "email": "Email Address",
     "confirmPassword": "Confirm Password",
     "optional": "Optional",
-    "submit": "Submit"
+    "submit": "Submit",
+    "tagline": "Manage your farm, grow with confidence.",
+    "chooseLanguage": "Choose your language / अपनी भाषा चुनें",
+    "welcomeBack": "Welcome back!",
+    "loginSubtitle": "Login to continue managing your farm.",
+    "newToKrishi": "New to Krishi?",
+    "registerSubtitle": "Create an account to get started.",
+    "rememberMe": "Remember me",
+    "createAccount": "Create Account",
+    "securityBadge": "Your data is safe and secure with us.",
+    "termsDisclaimer": "By continuing, you agree to our Terms of Service and Privacy Policy.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "features": {
+      "planAndTrack": "Plan & Track",
+      "planAndTrackDesc": "Plan seasons, crops, and daily farm work.",
+      "protectCrops": "Protect Crops",
+      "protectCropsDesc": "Detect problems early and take the right action.",
+      "betterDecisions": "Better Decisions",
+      "betterDecisionsDesc": "Get insights and reminders to improve your yield.",
+      "easyFarmManagement": "Easy farm management",
+      "easyFarmManagementDesc": "Manage farms, crops, seasons and daily work in one place.",
+      "smartCropCare": "Smart crop care",
+      "smartCropCareDesc": "Identify problems early and get treatment recommendations.",
+      "timelyReminders": "Timely reminders",
+      "timelyRemindersDesc": "Never miss important work with smart alerts and notifications."
+    }
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}!",
@@ -26,12 +67,56 @@
     "recommendedActions": "Recommended Actions",
     "alerts": "Alerts",
     "farmOverview": "Farm Overview / Metrics",
-    "stateSelector": "Review States (Dev Mode)"
+    "stateSelector": "Review States (Dev Mode)",
+    "greetings": {
+      "morning": "Good Morning, {{name}}",
+      "afternoon": "Good Afternoon, {{name}}",
+      "evening": "Good Evening, {{name}}"
+    },
+    "metrics": {
+      "farms": "My Farms",
+      "cycles": "Active Seasons",
+      "crops": "Active Crops",
+      "activeCrops": "Active Crops",
+      "problems": "Open Disease Issues",
+      "treatments": "Active Treatments",
+      "tasks": "Pending Tasks",
+      "notifications": "Unread Notifications"
+    },
+    "attention": {
+      "title": "Attention Required",
+      "diseaseReported": "Disease Reported: {{name}} on {{crop}}",
+      "treatmentPending": "Treatment Pending: {{name}}",
+      "taskOverdue": "Task Overdue: {{name}} (Due: {{date}})",
+      "newNotification": "New Alert: {{text}}",
+      "allClear": "All clear! No urgent attention required."
+    },
+    "actions": {
+      "title": "Quick Actions",
+      "addFarm": "Add Farm",
+      "startSeason": "Start Season",
+      "addCrop": "Add Crop",
+      "reportProblem": "Report Crop Problem",
+      "viewTasks": "View Tasks"
+    },
+    "timeline": {
+      "title": "Recent Activities",
+      "empty": "No recent operations logged.",
+      "farmCreated": "Farm '{{name}}' was registered.",
+      "cropAdded": "Crop '{{name}}' was planted.",
+      "diseaseReported": "Disease '{{name}}' was reported.",
+      "treatmentStarted": "Treatment '{{name}}' was started.",
+      "taskCompleted": "Task '{{name}}' was completed."
+    },
+    "recentCrops": {
+      "title": "Recent Crops",
+      "viewAll": "View All"
+    }
   },
   "states": {
-    "loading": "Loading information, please wait...",
+    "loading": "Loading details...",
     "noItems": "No information found",
-    "emptyDescription": "There is no work or data recorded here at the moment.",
+    "emptyDescription": "No information found.",
     "refresh": "Refresh",
     "errorOccurred": "Something went wrong",
     "errorDescription": "Could not fetch information from the server. Please check your connection.",
@@ -39,10 +124,616 @@
     "offlineTitle": "No Internet Connection",
     "offlineDescription": "You are currently offline. Krishi will sync details once you reconnect.",
     "reconnect": "Check Connection",
-    "emptyWork": "No pending work today! All tasks completed.",
+    "emptyWork": "Today's work completed",
+    "emptyWorkDesc": "✓ No action needed",
     "emptyProblems": "Your fields look healthy! No crop problems reported.",
     "emptyActions": "No recommended actions available at this time.",
-    "emptyAlerts": "No alerts at this moment.",
-    "emptyCrops": "No seasons or crops recorded yet."
+    "emptyAlerts": "No new alerts",
+    "emptyAlertsDesc": "You're up to date",
+    "emptyCrops": "No seasons or crops recorded yet.",
+    "noFarmsTitle": "No Farms Found",
+    "noFarmsDesc": "You have not added a farm yet.",
+    "noCropsTitle": "No Crops Found",
+    "noCropsDesc": "No crops added yet."
+  },
+  "farm": {
+    "title": "My Farms",
+    "create": "Create Farm",
+    "edit": "Edit Farm",
+    "details": "Farm Details",
+    "name": "Farm Name",
+    "location": "Farm Location",
+    "size": "Farm Size",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "createdAt": "Created Date",
+    "actions": {
+      "viewDetails": "View Details",
+      "editFarm": "Edit Farm",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "next": "Next",
+      "previous": "Previous",
+      "submit": "Submit",
+      "capture": "Capture"
+    },
+    "wizard": {
+      "step1Title": "What do you call this farm?",
+      "step1Desc": "Give your farm a name you will easily remember.",
+      "step2Title": "Farm Location",
+      "step2Desc": "Where is your farm located?",
+      "step3Title": "Farm Area",
+      "step3Desc": "How large is your farm? You can choose Cent, Acre, or Hectare.",
+      "step4Title": "Farm Photo (Optional)",
+      "step4Desc": "Add a photo to easily identify this farm visually.",
+      "step5Title": "Review details",
+      "step5Desc": "Review and confirm your farm details.",
+      "progress": "Step {{current}} of {{total}}",
+      "takePhoto": "Take Photo",
+      "chooseFile": "Choose From Device",
+      "skip": "Skip",
+      "photoPreview": "Photo Preview",
+      "areaLabel": "Farm Area",
+      "unitLabel": "Unit",
+      "validation": {
+        "nameRequired": "Farm name is required",
+        "locationRequired": "Farm location is required",
+        "sizeRequired": "Farm size is required",
+        "sizePositive": "Farm size must be greater than zero",
+        "sizeNumber": "Farm size must be a valid number"
+      },
+      "suggestionsHint": "Suggestions: Coconut Garden, River Side Plot, Paddy Field, Green Valley Farm",
+      "suggestionsLabel": "Quick Suggestions:",
+      "suggestions": {
+        "coconutGarden": "Coconut Garden",
+        "paddyField": "Paddy Field",
+        "riverSidePlot": "River Side Plot",
+        "homeFarm": "Home Farm"
+      },
+      "placeholderLocation": "e.g. Madurai, Tamil Nadu",
+      "placeholderArea": "e.g. 50",
+      "placeholderName": "e.g. Coconut Garden"
+    },
+    "empty": {
+      "welcome": "Welcome to Krishi",
+      "description": "Let's create your first farm."
+    },
+    "placeholders": {
+      "growingSeasons": "Seasons",
+      "crops": "Crops",
+      "cropProblems": "Crop Problems",
+      "tasks": "Tasks",
+      "futurePlaceholder": "Placeholder for future phase"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage settings and language preference",
+    "detailsHeader": "Personal Details",
+    "fullName": "Full Name",
+    "phoneNumber": "Phone Number",
+    "emailAddress": "Email Address",
+    "settingsHeader": "Settings",
+    "languageLabel": "Preferred Language",
+    "logoutButton": "Logout"
+  },
+  "workflow": {
+    "crop": "Crop",
+    "disease": "Disease",
+    "treatment": "Treatment",
+    "task": "Task",
+    "none": "None",
+    "applyToday": "Apply Today",
+    "status": {
+      "growing": "Growing",
+      "flowering": "Flowering",
+      "harvesting": "Harvesting",
+      "perennial": "Perennial",
+      "draft": "Draft",
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "inProgress": "In Progress"
+    },
+    "names": {
+      "rice": "Rice (Ponni)",
+      "tomato": "Tomato",
+      "coconut": "Coconut"
+    }
+  },
+  "units": {
+    "cent": "Cent",
+    "acre": "Acre",
+    "hectare": "Hectare"
+  },
+  "season": {
+    "title": "Seasons",
+    "create": "Start Season",
+    "details": "Season Details",
+    "name": "Season Name",
+    "cropType": "Season Type",
+    "seasonType": "Season Type",
+    "year": "Year",
+    "notes": "Notes",
+    "status": "Status",
+    "createdAt": "Created Date",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "currentSeasons": "Current Seasons",
+    "emptyState": "Start your first crop season",
+    "statusMap": {
+      "draft": "Planned",
+      "active": "Growing",
+      "completed": "Harvested",
+      "cancelled": "Stopped"
+    },
+    "types": {
+      "MONSOON": "Monsoon",
+      "SUMMER": "Summer",
+      "WINTER": "Winter",
+      "PERENNIAL": "Perennial"
+    },
+    "typeDesc": {
+      "MONSOON": "Rainy season cultivation",
+      "SUMMER": "Hot season crop cycle",
+      "WINTER": "Cool weather cultivation",
+      "PERENNIAL": "Long term tree or garden crops"
+    },
+    "crops": {
+      "title": "Crops Planted",
+      "add": "Add Crop",
+      "empty": "No crops planted in this season yet."
+    },
+    "actions": {
+      "start": "Start Growing",
+      "complete": "Mark Harvested",
+      "cancel": "Stop Season",
+      "back": "Back"
+    },
+    "wizard": {
+      "step1Title": "Select Season & Year",
+      "step1Desc": "Choose a planting period and year for this cultivation cycle.",
+      "step2Title": "Additional Notes (Optional)",
+      "step2Desc": "Add notes about crop plans, soil preparation, or weather forecasts.",
+      "step3Title": "Review & Start Season",
+      "step3Desc": "Review details before launching the new planting season.",
+      "placeholderNotes": "e.g. Plan to rotate paddy with pulses afterwards. Using bio-fertilizers.",
+      "step": "Step {{current}} of {{total}}"
+    },
+    "validation": {
+      "typeRequired": "Season type is required",
+      "yearRequired": "Year is required",
+      "yearInvalid": "Please enter a valid year (e.g. 2026)"
+    },
+    "suggestions": {
+      "coconut": "Coconut Plantation {{year}}",
+      "banana": "Banana Cultivation {{year}}",
+      "rice": "Rice Cultivation {{year}}",
+      "tomato": "Tomato Cultivation {{year}}",
+      "custom": "{{cropName}} Cultivation {{year}}"
+    }
+  },
+  "tasks": {
+    "due": "Due",
+    "addWorkButton": "Add Work",
+    "headerDesc": "Manage irrigation, fertilizing, weeding, and crop care activities",
+    "defaultTitle": "Work Task",
+    "inspectCropRecovery": "Inspect Crop Recovery",
+    "actions": {
+      "start": "Start Work",
+      "complete": "Mark Complete",
+      "cancel": "Cancel Work",
+      "viewDetails": "View Details",
+      "confirmComplete": "Yes, Mark Complete",
+      "confirmCancel": "Yes, Cancel Work",
+      "cancelModal": "Back",
+      "closeModal": "Close"
+    },
+    "confirm": {
+      "completePrompt": "Mark this work as completed?",
+      "cancelPrompt": "Are you sure you want to cancel this field work?"
+    },
+    "details": {
+      "dueDateLabel": "Scheduled Date",
+      "createdDateLabel": "Created Date",
+      "instructions": "Instructions / Notes",
+      "completedOn": "Work Completed On",
+      "cancelledOn": "Work Cancelled On"
+    },
+    "errors": {
+      "updateFailed": "Unable to update work status"
+    },
+    "tabs": {
+      "today": "Today's Work",
+      "upcoming": "Upcoming Work",
+      "completed": "Completed Work",
+      "all": "All Work"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "OVERDUE": "OVERDUE"
+    },
+    "source": {
+      "automation": "Auto Follow-up"
+    },
+    "types": {
+      "IRRIGATION": "Water Crop",
+      "FERTILIZER_APPLICATION": "Apply Fertilizer",
+      "MANURE_APPLICATION": "Add Manure / Compost",
+      "WEEDING": "Remove Weeds",
+      "PEST_CONTROL": "Pest Control",
+      "CROP_INSPECTION": "Inspect Crop Health",
+      "PRUNING": "Prune Plants",
+      "HARVESTING": "Harvest Crop",
+      "DISEASE_TREATMENT": "Disease Treatment",
+      "OTHER": "Field Work"
+    },
+    "modal": {
+      "title": "Add Field Work",
+      "subtitle": "Schedule agricultural activities for your crops"
+    },
+    "categories": {
+      "watering": "Watering",
+      "nutrition": "Crop Nutrition",
+      "maintenance": "Field Maintenance",
+      "protection": "Crop Protection",
+      "monitoring": "Monitoring & Harvest",
+      "other": "Other Activities"
+    },
+    "typeDesc": {
+      "IRRIGATION": "Irrigate this crop with water",
+      "FERTILIZER_APPLICATION": "Add fertilizer to nourish crop",
+      "MANURE_APPLICATION": "Add organic compost or manure",
+      "WEEDING": "Clear unwanted wild plants",
+      "PRUNING": "Trim dead branches or leaves",
+      "PEST_CONTROL": "Control insects or pests",
+      "DISEASE_TREATMENT": "Treat fungal or bacterial disease",
+      "CROP_INSPECTION": "Check crop growth and leaf health",
+      "HARVESTING": "Harvest mature crop yield",
+      "OTHER": "General agricultural field work"
+    },
+    "placeholders": {
+      "IRRIGATION": "Example: Water each plant for 15 minutes",
+      "FERTILIZER_APPLICATION": "Example: Apply 50g NPK around each plant",
+      "MANURE_APPLICATION": "Example: Add 1 bucket compost per tree",
+      "WEEDING": "Example: Clear weeds around banana plants",
+      "PRUNING": "Example: Trim lower yellow leaves",
+      "PEST_CONTROL": "Example: Spray neem oil mixture in morning",
+      "DISEASE_TREATMENT": "Example: Apply copper fungicide spray",
+      "CROP_INSPECTION": "Example: Check under leaves for yellow spots",
+      "HARVESTING": "Example: Harvest ripe fruits",
+      "OTHER": "Example: General field maintenance"
+    },
+    "questions": {
+      "whichCrop": "Which crop is this work for?",
+      "whatWork": "What work needs to be done?"
+    },
+    "form": {
+      "selectCrop": "Select Crop",
+      "selectWorkType": "Select Activity Type",
+      "titleLabel": "Work Title",
+      "titlePlaceholder": "e.g. Water Banana Crop",
+      "customizeName": "Change name",
+      "autoGenerated": "Auto-set",
+      "whenLabel": "When should this be done?",
+      "notesLabel": "Optional Notes / Instructions",
+      "notesPlaceholder": "e.g. Mix 50g NPK per plant",
+      "saveButton": "Schedule Work",
+      "errors": {
+        "cropRequired": "Please select a crop",
+        "titleRequired": "Task title is required"
+      }
+    },
+    "dueDate": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "pickDate": "Pick Date"
+    }
+  },
+  "crops": {
+    "page": {
+      "subtitle": "Cultivation inventory and daily operations overview"
+    },
+    "empty": {
+      "title": "No Crops Planted",
+      "desc": "Record your first crop planting to start managing daily tasks, tracking health, and scheduling harvests.",
+      "action": "Plant a Crop"
+    },
+    "edit": {
+      "title": "Edit Crop Details",
+      "errClosedSeason": "Cannot edit crop planting details because the parent season is completed or cancelled.",
+      "errLoad": "Failed to retrieve crop details.",
+      "failed": "Failed to update crop. Please check inputs."
+    },
+    "create": {
+      "title": "Plant a Crop",
+      "subtitle": "Sowing inside season: {{seasonName}}",
+      "errClosedSeason": "Cannot sow a crop on a completed or cancelled season.",
+      "failed": "Failed to plant crop. Please check inputs."
+    },
+    "details": {
+      "edit": "Edit Crop",
+      "todaysWork": "Today's Work",
+      "noTasks": "Your field work is up to date!",
+      "problems": "Current Problems",
+      "reportedOn": "Reported on",
+      "noProblems": "No crop health problems reported!",
+      "treatments": "Treatments",
+      "startedOn": "Started",
+      "noTreatments": "No treatments applied yet.",
+      "info": "Crop Information",
+      "cropType": "Crop Type",
+      "variety": "Crop Variety",
+      "datePlanted": "Date Planted",
+      "expectedHarvest": "Expected Harvest",
+      "none": "Not specified",
+      "season": "Season",
+      "farm": "Farm",
+      "timeline": "Timeline"
+    },
+    "types": {
+      "paddy": "Paddy",
+      "banana": "Banana",
+      "coconut": "Coconut",
+      "tomato": "Tomato",
+      "other": "Other"
+    },
+    "timeline": {
+      "cropAdded": "Crop Added",
+      "cropAddedDesc": "Crop {{name}} ({{variety}}) successfully added.",
+      "problemReported": "Problem Reported",
+      "problemReportedDesc": "{{diseaseName}} reported (Severity: {{severity}})",
+      "problemResolved": "Problem Marked Treated",
+      "problemResolvedDesc": "Status: {{status}}",
+      "treatmentApplied": "Treatment Applied",
+      "treatmentAppliedDesc": "Treatment started: {{treatmentName}}",
+      "taskCompleted": "Task Completed",
+      "noEvents": "No events logged yet."
+    },
+    "status": {
+      "healthy": "Healthy",
+      "attention": "Attention",
+      "problem": "Problem",
+      "completed": "Harvested"
+    },
+    "wizard": {
+      "step1": {
+        "title": "Select Crop Type",
+        "desc": "What type of crop are you planting today?",
+        "customLabel": "Specify Crop Name",
+        "customPlaceholder": "e.g. Mango, Carrot"
+      },
+      "step2": {
+        "title": "Crop Variety",
+        "desc": "What is the specific type or variety of this crop?",
+        "label": "Crop Variety",
+        "placeholder": "e.g. Ponni, Basmati, Grand Naine",
+        "suggestionsLabel": "Common Varieties:",
+        "unknownToggle": "I don't know / Local Variety"
+      },
+      "step3": {
+        "title": "Date Planted",
+        "desc": "When was this crop sowed or planted in the ground?",
+        "label": "Date Planted"
+      },
+      "step4": {
+        "title": "Expected Harvest",
+        "desc": "Estimate the date when you expect to harvest this crop.",
+        "label": "Expected Harvest Date",
+        "suggestPaddy": "Suggested Paddy cycle is ~120 days from planting.",
+        "suggestBanana": "Suggested Banana cycle is ~300 days from planting.",
+        "suggestTomato": "Suggested Tomato cycle is ~90 days from planting.",
+        "disclaimer": "Timeline suggestions are estimate frameworks only. Expected harvest dates may vary based on weather conditions."
+      },
+      "step5": {
+        "title": "Review Details",
+        "desc": "Please review sowed details before logging cultivation."
+      },
+      "review": {
+        "cropType": "Crop Type",
+        "variety": "Crop Variety",
+        "datePlanted": "Date Planted",
+        "expectedHarvest": "Expected Harvest",
+        "none": "Not specified"
+      },
+      "actions": {
+        "back": "Back",
+        "next": "Next",
+        "planting": "Planting...",
+        "submit": "Plant Crop"
+      }
+    },
+    "card": {
+      "plantedToday": "Planted today",
+      "plantedDaysAgo": "Planted {{days}} days ago",
+      "noVariety": "Standard",
+      "datePlanted": "Date Planted",
+      "duration": "Timeline",
+      "season": "Season",
+      "problems": "Problems",
+      "tasks": "Tasks",
+      "viewDetails": "Workspace"
+    }
+  },
+  "notifications": {
+    "types": {
+      "CROP_CYCLE_STARTED": {
+        "title": "Crop Season Started",
+        "message": "Season {{name}} ({{seasonType}}, {{year}}) has started."
+      },
+      "CROP_CYCLE_COMPLETED": {
+        "title": "Crop Season Completed",
+        "message": "Season {{name}} ({{seasonType}}, {{year}}) has been marked completed."
+      },
+      "DISEASE_REPORTED": {
+        "title": "Disease Incident Reported",
+        "message": "Disease {{diseaseName}} reported on crop {{cropName}} ({{cropVariety}})."
+      },
+      "DISEASE_UNDER_REVIEW": {
+        "title": "Disease Incident Under Review",
+        "message": "Disease incident {{diseaseName}} is now under review."
+      },
+      "DISEASE_TREATED": {
+        "title": "Disease Incident Treated",
+        "message": "Disease incident {{diseaseName}} has been marked as treated."
+      },
+      "DISEASE_CLOSED": {
+        "title": "Disease Incident Closed",
+        "message": "Disease incident {{diseaseName}} has been closed."
+      },
+      "TREATMENT_PLANNED": {
+        "title": "Treatment Planned",
+        "message": "Treatment {{treatmentName}} has been planned."
+      },
+      "TREATMENT_STARTED": {
+        "title": "Treatment Started",
+        "message": "Treatment {{treatmentName}} has started."
+      },
+      "TREATMENT_COMPLETED": {
+        "title": "Treatment Completed",
+        "message": "Treatment {{treatmentName}} has been completed."
+      },
+      "TASK_CREATED": {
+        "title": "Task Created",
+        "message": "Task '{{title}}' has been created, due by {{dueDate}}."
+      },
+      "TASK_STARTED": {
+        "title": "Task Started",
+        "message": "Task '{{title}}' has been started."
+      },
+      "TASK_COMPLETED": {
+        "title": "Task Completed",
+        "message": "Task '{{title}}' has been completed."
+      },
+      "TASK_CANCELLED": {
+        "title": "Task Cancelled",
+        "message": "Task '{{title}}' has been cancelled."
+      },
+      "CROP_PLANTING_CREATED": {
+        "title": "Crop Sowed",
+        "message": "Crop {{cropName}} ({{cropVariety}}) has been added."
+      },
+      "CROP_PLANTING_UPDATED": {
+        "title": "Crop Updated",
+        "message": "Crop {{cropName}} ({{cropVariety}}) details have been updated."
+      }
+    }
+  },
+  "diseaseIncident": {
+    "title": "Crop Problems",
+    "subtitle": "Track and manage field issues, pests, and crop diseases",
+    "reportButton": "Report Problem",
+    "reportModalTitle": "Report Crop Problem",
+    "reportModalSubtitle": "Log a disease, pest, or field issue for your crop",
+    "selectCrop": "Select Crop",
+    "diseaseName": "Problem / Disease Name",
+    "diseaseNamePlaceholder": "e.g. Rice Blast, Leaf Spot, Root Rot, Stem Borer",
+    "description": "Symptoms / Notes",
+    "descriptionPlaceholder": "Describe symptoms observed on leaves, stems, or fruit...",
+    "status": {
+      "REPORTED": "Reported",
+      "UNDER_REVIEW": "Under Review",
+      "TREATED": "Treated",
+      "CLOSED": "Closed"
+    },
+    "actions": {
+      "review": "Mark Under Review",
+      "treat": "Mark Treated",
+      "close": "Close Issue",
+      "viewDetails": "View Problem",
+      "cancel": "Cancel",
+      "submit": "Submit Problem Report"
+    },
+    "emptyState": "No crop health problems reported!",
+    "emptyStateDesc": "Your fields look healthy and disease-free.",
+    "filterAll": "All Issues",
+    "filterOpen": "Active Issues",
+    "filterClosed": "Closed Issues",
+    "reportedOn": "Reported",
+    "suggestionsHint": "Common Issues: Rice Blast, Sheath Blight, Yellow Stem Borer, Bacterial Leaf Blight, Mosaic Virus"
+  },
+  "treatment": {
+    "title": "Treatment Plans",
+    "subtitle": "Manage spray schedules, organic applications, and curative treatments",
+    "addModalTitle": "Plan New Treatment",
+    "addModalSubtitle": "Create a treatment plan for a reported crop problem",
+    "addButton": "Plan Treatment",
+    "selectProblem": "Select Disease Incident",
+    "treatmentName": "Treatment Name",
+    "treatmentNamePlaceholder": "e.g. Neem Oil Spray, Copper Fungicide, Organic Bio-Pesticide",
+    "dosage": "Recommended Dosage",
+    "dosagePlaceholder": "e.g. 5ml per liter of water, 200g per acre",
+    "applicationMethod": "Application Method",
+    "methodPlaceholder": "Select or enter method (Foliar Spray, Drenching, Seed Treatment)",
+    "description": "Application Notes / Instructions",
+    "descriptionPlaceholder": "Special instructions (e.g. Spray early morning, wear protective gear)...",
+    "targetLabel": "Target",
+    "dosageLabel": "Dosage",
+    "methodLabel": "Method",
+    "createdOn": "Created",
+    "methods": {
+      "foliarSpray": "Foliar Spray",
+      "soilDrenching": "Soil Drenching",
+      "seedTreatment": "Seed Treatment",
+      "pruning": "Pruning / Sanitation"
+    },
+    "status": {
+      "PLANNED": "Planned",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed"
+    },
+    "actions": {
+      "start": "Start Treatment",
+      "complete": "Mark Completed",
+      "viewDetails": "View Treatment",
+      "cancel": "Cancel",
+      "submit": "Save Treatment Plan"
+    },
+    "emptyState": "No treatment plans recorded",
+    "emptyStateDesc": "Active treatments will appear here once planned for reported crop problems.",
+    "filterAll": "All Treatments",
+    "filterPlanned": "Planned",
+    "filterInProgress": "In Progress",
+    "filterCompleted": "Completed",
+    "methods": {
+      "foliar": "Foliar Spray",
+      "drenching": "Soil Drenching",
+      "seed": "Seed Treatment",
+      "granular": "Granular Application"
+    }
+  },
+  "taskModal": {
+    "addModalTitle": "Add Field Task",
+    "addModalSubtitle": "Create a scheduled action item for a treatment plan",
+    "addButton": "Add Task",
+    "selectTreatment": "Select Treatment Plan",
+    "taskTitle": "Task Title",
+    "taskTitlePlaceholder": "e.g. Prepare Foliar Spray Solution, Apply Spray, Inspect Crop Damage",
+    "dueDate": "Due Date",
+    "description": "Task Notes / Details",
+    "descriptionPlaceholder": "Detailed instructions for field worker...",
+    "presetsLabel": "Quick Task Presets:",
+    "status": {
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "actions": {
+      "start": "Start Task",
+      "complete": "Complete",
+      "cancel": "Cancel Task",
+      "submit": "Create Task"
+    },
+    "filterAll": "All Tasks",
+    "filterPending": "Pending",
+    "filterInProgress": "In Progress",
+    "filterCompleted": "Completed",
+    "filterCancelled": "Cancelled"
   }
 }

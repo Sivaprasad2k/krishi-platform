@@ -1,0 +1,739 @@
+{
+  "nav": {
+    "home": "मुख्य पृष्ठ",
+    "farms": "फार्म",
+    "crops": "फसलें",
+    "tasks": "आज का काम",
+    "alerts": "अलर्ट",
+    "profile": "प्रोफ़ाइल",
+    "more": "अधिक",
+    "problems": "फसल समस्याएं",
+    "treatments": "उपचार"
+  },
+  "errors": {
+    "codes": {
+      "VALIDATION_FAILED": "कृपया अपनी इनपुट जानकारी जांचें और पुनः प्रयास करें।",
+      "ACCESS_DENIED": "अनुमति नहीं है। आपके पास इस संसाधन तक पहुंच नहीं है।",
+      "RESOURCE_NOT_FOUND": "अनुरोधित खेत या फसल रिकॉर्ड नहीं मिला।",
+      "INVALID_STATE_TRANSITION": "वर्तमान स्थिति में यह कार्य नहीं किया जा सकता।",
+      "CROSS_ENTITY_MISMATCH": "चयनित उपचार योजना इस फसल से संबंधित नहीं है।",
+      "UNAUTHORIZED": "सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।",
+      "INTERNAL_SERVER_ERROR": "सर्वर त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
+    }
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "register": "पंजीकरण",
+    "logout": "लॉगआउट",
+    "phoneNumber": "फ़ोन नंबर",
+    "password": "पासवर्ड",
+    "fullName": "पूरा नाम",
+    "email": "ईमेल पता",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "optional": "वैकल्पिक",
+    "submit": "जमा करें",
+    "tagline": "अपने खेत का प्रबंधन करें, आत्मविश्वास के साथ आगे बढ़ें।",
+    "chooseLanguage": "Choose your language / अपनी भाषा चुनें",
+    "welcomeBack": "वापसी पर स्वागत है!",
+    "loginSubtitle": "अपने खेत का प्रबंधन जारी रखने के लिए लॉगिन करें।",
+    "newToKrishi": "कृषि पर नए हैं?",
+    "registerSubtitle": "शुरू करने के लिए एक खाता बनाएं।",
+    "rememberMe": "मुझे याद रखें",
+    "createAccount": "खाता बनाएं",
+    "securityBadge": "आपका डेटा हमारे साथ सुरक्षित है।",
+    "termsDisclaimer": "जारी रखकर, आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत होते हैं।",
+    "showPassword": "पासवर्ड दिखाएं",
+    "hidePassword": "पासवर्ड छिपाएं",
+    "features": {
+      "planAndTrack": "योजना बनाएं और ट्रैक करें",
+      "planAndTrackDesc": "मौसम, फसलों और दैनिक खेत के काम की योजना बनाएं।",
+      "protectCrops": "फसलों की सुरक्षा करें",
+      "protectCropsDesc": "समस्याओं का समय पर पता लगाएं और सही कार्रवाई करें।",
+      "betterDecisions": "बेहतर निर्णय",
+      "betterDecisionsDesc": "उपज में सुधार के लिए सुझाव और रिमाइंडर प्राप्त करें।",
+      "easyFarmManagement": "आसान खेत प्रबंधन",
+      "easyFarmManagementDesc": "खेतों, फसलों, मौसमों और दैनिक कार्यों का एक ही स्थान पर प्रबंधन करें।",
+      "smartCropCare": "स्मार्ट फसल देखभाल",
+      "smartCropCareDesc": "समस्याओं की पहचान करें और उपचार के सुझाव प्राप्त करें।",
+      "timelyReminders": "समय पर रिमाइंडर",
+      "timelyRemindersDesc": "स्मार्ट अलर्ट और सूचनाओं के साथ महत्वपूर्ण काम कभी न भूलें।"
+    }
+  },
+  "dashboard": {
+    "welcome": "स्वागत है, {{name}}!",
+    "status": "फार्म संचालन अवलोकन",
+    "todayTasks": "आज का काम",
+    "cropProblems": "फसल की समस्याएं",
+    "recommendedActions": "अनुशंसित कार्य",
+    "alerts": "अलर्ट",
+    "farmOverview": "फार्म अवलोकन / मेट्रिक्स",
+    "stateSelector": "समीक्षा स्थिति (देव मोड)",
+    "greetings": {
+      "morning": "शुभ प्रभात, {{name}}",
+      "afternoon": "शुभ दोपहर, {{name}}",
+      "evening": "शुभ संध्या, {{name}}"
+    },
+    "metrics": {
+      "farms": "मेरे फार्म",
+      "cycles": "सक्रिय सीजन",
+      "crops": "सक्रिय फसलें",
+      "activeCrops": "सक्रिय फसलें",
+      "problems": "सक्रिय बीमारी के मुद्दे",
+      "treatments": "सक्रिय उपचार",
+      "tasks": "लंबित कार्य",
+      "notifications": "बिना पढ़े नोटिफिकेशन"
+    },
+    "attention": {
+      "title": "ध्यान देने योग्य",
+      "diseaseReported": "बीमारी की सूचना: {{crop}} पर {{name}}",
+      "treatmentPending": "लंबित उपचार: {{name}}",
+      "taskOverdue": "कार्य विलंबित: {{name}} (देय तिथि: {{date}})",
+      "newNotification": "नया अलर्ट: {{text}}",
+      "allClear": "सब ठीक है! कोई तत्काल ध्यान देने की आवश्यकता नहीं है।"
+    },
+    "actions": {
+      "title": "त्वरित कार्य",
+      "addFarm": "फार्म जोड़ें",
+      "startSeason": "सीजन शुरू करें",
+      "addCrop": "फसल जोड़ें",
+      "reportProblem": "समस्या की रिपोर्ट करें",
+      "viewTasks": "कार्य देखें"
+    },
+    "timeline": {
+      "title": "हाल की गतिविधियां",
+      "empty": "कोई हालिया गतिविधि दर्ज नहीं है।",
+      "farmCreated": "फार्म '{{name}}' पंजीकृत किया गया था।",
+      "cropAdded": "फसल '{{name}}' बोई गई थी।",
+      "diseaseReported": "बीमारी '{{name}}' की सूचना दी गई थी।",
+      "treatmentStarted": "उपचार '{{name}}' शुरू किया गया था।",
+      "taskCompleted": "कार्य '{{name}}' पूरा हुआ।"
+    },
+    "recentCrops": {
+      "title": "हाल की फसलें",
+      "viewAll": "सभी देखें"
+    }
+  },
+  "states": {
+    "loading": "विवरण लोड हो रहा है...",
+    "noItems": "कोई जानकारी नहीं मिली",
+    "emptyDescription": "कोई जानकारी नहीं मिली।",
+    "refresh": "ताज़ा करें",
+    "errorOccurred": "कुछ गड़बड़ हो गई",
+    "errorDescription": "सर्वर से जानकारी प्राप्त नहीं की जा सकी। कृपया अपना इंटरनेट कनेक्शन जांचें।",
+    "tryAgain": "पुनः प्रयास करें",
+    "offlineTitle": "कोई इंटरनेट कनेक्शन नहीं",
+    "offlineDescription": "आप वर्तमान में ऑफ़लाइन हैं। दोबारा जुड़ने पर कृषि जानकारी सिंक करेगा।",
+    "reconnect": "कनेक्शन जांचें",
+    "emptyWork": "आज का काम पूरा हुआ",
+    "emptyWorkDesc": "✓ कोई कार्रवाई आवश्यक नहीं",
+    "emptyProblems": "आपके खेत स्वस्थ दिख रहे हैं! कोई समस्या दर्ज नहीं है।",
+    "emptyActions": "इस समय कोई अनुशंसित कार्य उपलब्ध नहीं है।",
+    "emptyAlerts": "कोई नया अलर्ट नहीं",
+    "emptyAlertsDesc": "आप अप-टू-डेट हैं",
+    "emptyCrops": "अभी तक कोई सीजन या फसलें दर्ज नहीं हैं।",
+    "noFarmsTitle": "कोई फार्म नहीं मिला",
+    "noFarmsDesc": "आपने अभी तक कोई फार्म नहीं जोड़ा है।",
+    "noCropsTitle": "कोई फसल नहीं मिली",
+    "noCropsDesc": "अभी तक कोई फसल नहीं जोड़ी गई है।"
+  },
+  "farm": {
+    "title": "मेरे फार्म",
+    "create": "फार्म बनाएं",
+    "edit": "फार्म संपादित करें",
+    "details": "फार्म का विवरण",
+    "name": "फार्म का नाम",
+    "location": "स्थान",
+    "size": "फार्म का आकार",
+    "status": "स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "createdAt": "निर्माण तिथि",
+    "actions": {
+      "viewDetails": "विवरण देखें",
+      "editFarm": "फार्म संपादित करें",
+      "save": "परिवर्तन सहेजें",
+      "cancel": "रद्द करें",
+      "next": "आगे",
+      "previous": "पीछे",
+      "submit": "जमा करें",
+      "capture": "फोटो लें"
+    },
+    "wizard": {
+      "step1Title": "आप इस फार्म को क्या कहते हैं?",
+      "step1Desc": "अपने फार्म को एक ऐसा नाम दें जो आपको आसानी से याद रहे।",
+      "step2Title": "स्थान",
+      "step2Desc": "आपका फार्म कहाँ स्थित है?",
+      "step3Title": "फार्म का क्षेत्रफल",
+      "step3Desc": "आपका फार्म कितना बड़ा है? आप सेंट, एकड़ या हेक्टेयर चुन सकते हैं।",
+      "step4Title": "फार्म की फोटो (वैकल्पिक)",
+      "step4Desc": "फार्म की दृश्य पहचान के लिए एक फोटो जोड़ें।",
+      "step5Title": "विवरण की समीक्षा करें",
+      "step5Desc": "अपने फार्म के विवरण की समीक्षा करें और पुष्टि करें।",
+      "progress": "चरण {{current}} / {{total}}",
+      "takePhoto": "फोटो लें",
+      "chooseFile": "डिवाइस से चुनें",
+      "skip": "छोड़ें",
+      "photoPreview": "फोटो पूर्वावलोकन",
+      "areaLabel": "फार्म का क्षेत्रफल",
+      "unitLabel": "इकाई",
+      "validation": {
+        "nameRequired": "फार्म का नाम आवश्यक है",
+        "locationRequired": "स्थान आवश्यक है",
+        "sizeRequired": "फार्म का आकार आवश्यक है",
+        "sizePositive": "फार्म का आकार शून्य से अधिक होना चाहिए",
+        "sizeNumber": "फार्म का आकार एक वैध संख्या होनी चाहिए"
+      },
+      "suggestionsHint": "सुझाव: नारियल बगीचा, नदी किनारा भूखंड, धान का खेत, ग्रीन वैली फार्म",
+      "suggestionsLabel": "त्वरित सुझाव:",
+      "suggestions": {
+        "coconutGarden": "नारियल बगीचा",
+        "paddyField": "धान का खेत",
+        "riverSidePlot": "नदी किनारा भूखंड",
+        "homeFarm": "घरेलू फार्म"
+      },
+      "placeholderLocation": "जैसे: मदुरै, तमिलनाडु",
+      "placeholderArea": "जैसे: 50",
+      "placeholderName": "जैसे: नारियल का बगीचा"
+    },
+    "empty": {
+      "welcome": "कृषि में आपका स्वागत है",
+      "description": "आइए आपका पहला फार्म बनाएं।"
+    },
+    "placeholders": {
+      "growingSeasons": "सीजन",
+      "crops": "फसलें",
+      "cropProblems": "फसल की समस्याएं",
+      "tasks": "कार्य",
+      "futurePlaceholder": "भविष्य के चरण के लिए स्थानधारक"
+    }
+  },
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "subtitle": "सेटिंग्स और भाषा प्राथमिकता प्रबंधित करें",
+    "detailsHeader": "व्यक्तिगत विवरण",
+    "fullName": "पूरा नाम",
+    "phoneNumber": "फ़ोन नंबर",
+    "emailAddress": "ईमेल पता",
+    "settingsHeader": "सेटिंग्स",
+    "languageLabel": "पसंदीदा भाषा",
+    "logoutButton": "लॉगआउट"
+  },
+  "workflow": {
+    "crop": "फसल",
+    "disease": "बीमारी",
+    "treatment": "उपचार",
+    "task": "कार्य",
+    "none": "कोई नहीं",
+    "applyToday": "आज ही लागू करें",
+    "status": {
+      "growing": "बढ़ रही है",
+      "flowering": "फूल आ रहे हैं",
+      "harvesting": "कटाई",
+      "perennial": "बारहमासी",
+      "draft": "प्रारूप",
+      "active": "सक्रिय",
+      "completed": "पूर्ण",
+      "cancelled": "रद्द किया गया",
+      "pending": "लंबित",
+      "inProgress": "प्रगति पर"
+    },
+    "names": {
+      "rice": "धान (पोन्नी)",
+      "tomato": "टमाटर",
+      "coconut": "नारियल"
+    }
+  },
+  "units": {
+    "cent": "सेंट",
+    "acre": "एकड़",
+    "hectare": "हेक्टेयर"
+  },
+  "season": {
+    "title": "सीजन",
+    "create": "सीजन शुरू करें",
+    "details": "सीजन का विवरण",
+    "name": "सीजन का नाम",
+    "cropType": "सीजन का प्रकार",
+    "seasonType": "सीजन का प्रकार",
+    "year": "वर्ष",
+    "notes": "टिप्पणी",
+    "status": "स्थिति",
+    "createdAt": "निर्माण तिथि",
+    "startDate": "आरंभ तिथि",
+    "endDate": "समाप्ति तिथि",
+    "currentSeasons": "वर्तमान सीजन",
+    "emptyState": "अपनी पहली फसल का सीजन शुरू करें",
+    "statusMap": {
+      "draft": "नियोजित",
+      "active": "बढ़ रही है",
+      "completed": "काट ली गई",
+      "cancelled": "रोक दी गई"
+    },
+    "types": {
+      "MONSOON": "मानसून",
+      "SUMMER": "गर्मी",
+      "WINTER": "सर्दी",
+      "PERENNIAL": "बारहमासी"
+    },
+    "typeDesc": {
+      "MONSOON": "बरसात के मौसम की फसल",
+      "SUMMER": "गर्मी के मौसम का फसल चक्र",
+      "WINTER": "सर्दी के मौसम की खेती",
+      "PERENNIAL": "साल भर चलने वाली पेड़ या बगीचे की फसल"
+    },
+    "crops": {
+      "title": "उगाई गई फसलें",
+      "add": "फसल जोड़ें",
+      "empty": "इस सीजन में अभी तक कोई फसल नहीं उगाई गई है।"
+    },
+    "actions": {
+      "start": "बढ़ना शुरू करें",
+      "complete": "कटाई चिह्नित करें",
+      "cancel": "सीजन रोकें",
+      "back": "पीछे"
+    },
+    "wizard": {
+      "step1Title": "सीजन और वर्ष चुनें",
+      "step1Desc": "इस फसल चक्र के लिए बुवाई की अवधि और वर्ष चुनें।",
+      "step2Title": "अतिरिक्त टिप्पणी (वैकल्पिक)",
+      "step2Desc": "फसल योजनाओं, मिट्टी की तैयारी या मौसम के पूर्वानुमान के बारे में टिप्पणी जोड़ें।",
+      "step3Title": "समीक्षा करें और सीजन शुरू करें",
+      "step3Desc": "नया बुवाई सीजन शुरू करने से पहले विवरण की समीक्षा करें।",
+      "placeholderNotes": "जैसे: धान के बाद दालें उगाने की योजना है। जैविक खाद का उपयोग कर रहे हैं।",
+      "step": "चरण {{current}} / {{total}}"
+    },
+    "validation": {
+      "typeRequired": "सीजन का प्रकार आवश्यक है",
+      "yearRequired": "वर्ष आवश्यक है",
+      "yearInvalid": "कृपया एक मान्य वर्ष दर्ज करें (जैसे: 2026)"
+    },
+    "suggestions": {
+      "coconut": "नारियल खेती {{year}}",
+      "banana": "केला खेती {{year}}",
+      "rice": "धान खेती {{year}}",
+      "tomato": "टमाटर खेती {{year}}",
+      "custom": "{{cropName}} खेती {{year}}"
+    }
+  },
+  "tasks": {
+    "due": "तिथि",
+    "addWorkButton": "कार्य जोड़ें",
+    "headerDesc": "सिंचाई, खाद, निराई-गुड़ाई और फसल देखभाल कार्यों का प्रबंधन करें",
+    "defaultTitle": "कृषि कार्य",
+    "inspectCropRecovery": "फसल सुधार का निरीक्षण करें",
+    "actions": {
+      "start": "कार्य शुरू करें",
+      "complete": "पूरा चिह्नित करें",
+      "cancel": "कार्य रद्द करें",
+      "viewDetails": "विवरण देखें",
+      "confirmComplete": "हां, पूरा चिह्नित करें",
+      "confirmCancel": "हां, कार्य रद्द करें",
+      "cancelModal": "वापस",
+      "closeModal": "बंद करें"
+    },
+    "confirm": {
+      "completePrompt": "क्या आप इस कार्य को पूरा हुआ चिह्नित करना चाहते हैं?",
+      "cancelPrompt": "क्या आप वाकई इस कृषि कार्य को रद्द करना चाहते हैं?"
+    },
+    "details": {
+      "dueDateLabel": "निर्धारित तिथि",
+      "createdDateLabel": "निर्माण तिथि",
+      "instructions": "निर्देश / टिप्पणियां",
+      "completedOn": "कार्य पूरा होने की तिथि",
+      "cancelledOn": "कार्य रद्द होने की तिथि"
+    },
+    "errors": {
+      "updateFailed": "कार्य स्थिति अपडेट करने में असमर्थ"
+    },
+    "tabs": {
+      "today": "आज के कार्य",
+      "upcoming": "आगामी कार्य",
+      "completed": "पूरे किए गए कार्य",
+      "all": "सभी कार्य"
+    },
+    "status": {
+      "PENDING": "लंबित",
+      "IN_PROGRESS": "प्रगति पर",
+      "COMPLETED": "पूर्ण",
+      "CANCELLED": "रद्द",
+      "OVERDUE": "अतिदेय"
+    },
+    "source": {
+      "automation": "ऑटो अनुवर्ती कार्य"
+    },
+    "types": {
+      "IRRIGATION": "फसल सिंचाई",
+      "FERTILIZER_APPLICATION": "उर्वरक/खाद डालना",
+      "MANURE_APPLICATION": "जैविक खाद/कंपोस्ट डालना",
+      "WEEDING": "खरपतवार नियंत्रण / निराई",
+      "PEST_CONTROL": "कीट नियंत्रण",
+      "CROP_INSPECTION": "फसल स्वास्थ्य निरीक्षण",
+      "PRUNING": "कटाई-छंटाई (Pruning)",
+      "HARVESTING": "फसल कटाई (Harvest)",
+      "DISEASE_TREATMENT": "रोग उपचार",
+      "OTHER": "अन्य खेत कार्य"
+    },
+    "modal": {
+      "title": "खेत कार्य जोड़ें",
+      "subtitle": "अपनी फसलों के लिए कृषि गतिविधियों का शेड्यूल बनाएं"
+    },
+    "categories": {
+      "watering": "सिंचाई",
+      "nutrition": "फसल पोषण",
+      "maintenance": "खेत का रख-रखाव",
+      "protection": "फसल सुरक्षा",
+      "monitoring": "निगरानी और कटाई",
+      "other": "अन्य गतिविधियां"
+    },
+    "typeDesc": {
+      "IRRIGATION": "फसल की सिंचाई करें",
+      "FERTILIZER_APPLICATION": "फसल को पोषण देने के लिए खाद डालें",
+      "MANURE_APPLICATION": "जैविक खाद या कंपोस्ट मिलाएं",
+      "WEEDING": "अनचाहे खरपतवार हटाएं",
+      "PRUNING": "सूखी शाखाओं और पत्तियों की छंटाई करें",
+      "PEST_CONTROL": "कीड़ों और कीटों का नियंत्रण करें",
+      "DISEASE_TREATMENT": "फंगस या बैक्टीरिया बीमारी का इलाज करें",
+      "CROP_INSPECTION": "फसल विकास और स्वास्थ्य की जांच करें",
+      "HARVESTING": "पकी हुई फसल की कटाई करें",
+      "OTHER": "सामान्य कृषि कार्य"
+    },
+    "placeholders": {
+      "IRRIGATION": "उदाहरण: प्रत्येक पौधे को 15 मिनट पानी दें",
+      "FERTILIZER_APPLICATION": "उदाहरण: प्रति पौधा 50g NPK खाद डालें",
+      "MANURE_APPLICATION": "उदाहरण: प्रति पेड़ 1 बाल्टी कंपोस्ट डालें",
+      "WEEDING": "उदाहरण: केले के पौधों के आसपास खरपतवार साफ करें",
+      "PRUNING": "उदाहरण: नीचे की पीली पत्तियां काटें",
+      "PEST_CONTROL": "उदाहरण: सुबह नीम तेल का छिड़काव करें",
+      "DISEASE_TREATMENT": "उदाहरण: कॉपर कवकनाशी का छिड़काव करें",
+      "CROP_INSPECTION": "उदाहरण: पत्तियों के नीचे पीले धब्बों की जांच करें",
+      "HARVESTING": "उदाहरण: पके फलों की कटाई करें",
+      "OTHER": "उदाहरण: सामान्य खेत का रख-रखाव"
+    },
+    "questions": {
+      "whichCrop": "यह कार्य किस फसल के लिए है?",
+      "whatWork": "क्या कार्य किया जाना है?"
+    },
+    "form": {
+      "selectCrop": "फसल चुनें",
+      "selectWorkType": "गतिविधि का प्रकार चुनें",
+      "titleLabel": "कार्य का नाम",
+      "titlePlaceholder": "जैसे: केले की सिंचाई",
+      "customizeName": "नाम बदलें",
+      "autoGenerated": "स्वतः सेट",
+      "whenLabel": "यह कब किया जाना चाहिए?",
+      "notesLabel": "वैकल्पिक नोट्स / निर्देश",
+      "notesPlaceholder": "जैसे: प्रति पौधा 50g एनपीके मिलाएं",
+      "saveButton": "कार्य शेड्यूल करें",
+      "errors": {
+        "cropRequired": "कृपया एक फसल चुनें",
+        "titleRequired": "कार्य का नाम आवश्यक है"
+      }
+    },
+    "dueDate": {
+      "today": "आज",
+      "tomorrow": "कल",
+      "pickDate": "तिथि चुनें"
+    }
+  },
+  "crops": {
+    "page": {
+      "subtitle": "फसल सूची और दैनिक कार्यों का अवलोकन"
+    },
+    "empty": {
+      "title": "कोई फसल नहीं बोई गई",
+      "desc": "दैनिक कार्यों के प्रबंधन, फसल स्वास्थ्य की निगरानी और कटाई की योजना शुरू करने के लिए अपनी पहली फसल का विवरण दर्ज करें।",
+      "action": "फसल बोएं"
+    },
+    "edit": {
+      "title": "फसल का विवरण संपादित करें",
+      "errClosedSeason": "फसल बोने के विवरण को संपादित नहीं किया जा सकता क्योंकि मूल मौसम पूरा या निरस्त हो चुका है।",
+      "errLoad": "फसल का विवरण प्राप्त करने में विफल।",
+      "failed": "फसल का विवरण अद्यतित करने में विफल। कृपया इनपुट की जांच करें।"
+    },
+    "create": {
+      "title": "फसल बोएं",
+      "subtitle": "इस मौसम में बुआई: {{seasonName}}",
+      "errClosedSeason": "पूरे या निरस्त हो चुके मौसम में फसल नहीं बोई जा सकती।",
+      "failed": "फसल बोने में विफल। कृपया इनपुट की जांच करें।"
+    },
+    "details": {
+      "edit": "फसल संपादित करें",
+      "todaysWork": "आज का काम",
+      "noTasks": "आपके खेत का काम अद्यतित है!",
+      "problems": "वर्तमान समस्याएं",
+      "reportedOn": "रिपोर्ट की गई तिथि",
+      "noProblems": "फसल स्वास्थ्य की कोई समस्या रिपोर्ट नहीं की गई है!",
+      "treatments": "उपचार",
+      "startedOn": "शुरू किया गया",
+      "noTreatments": "अभी तक कोई उपचार लागू नहीं किया गया है।",
+      "info": "फसल की जानकारी",
+      "cropType": "फसल का प्रकार",
+      "variety": "फसल की किस्म",
+      "datePlanted": "बुआई की तिथि",
+      "expectedHarvest": "संभावित कटाई",
+      "none": "निर्दिष्ट नहीं",
+      "season": "मौसम",
+      "farm": "खेत",
+      "timeline": "टाइमलाइन"
+    },
+    "types": {
+      "paddy": "धान",
+      "banana": "केला",
+      "coconut": "नारियल",
+      "tomato": "टमाटर",
+      "other": "अन्य"
+    },
+    "timeline": {
+      "cropAdded": "फसल जोड़ी गई",
+      "cropAddedDesc": "फसल {{name}} ({{variety}}) सफलतापूर्वक जोड़ी गई।",
+      "problemReported": "समस्या रिपोर्ट की गई",
+      "problemReportedDesc": "{{diseaseName}} रिपोर्ट की गई (तीव्रता: {{severity}})",
+      "problemResolved": "समस्या ठीक की गई",
+      "problemResolvedDesc": "स्थिति: {{status}}",
+      "treatmentApplied": "उपचार शुरू किया गया",
+      "treatmentAppliedDesc": "उपचार शुरू हुआ: {{treatmentName}}",
+      "taskCompleted": "कार्य पूरा हुआ",
+      "noEvents": "अभी तक कोई घटना दर्ज नहीं की गई है।"
+    },
+    "status": {
+      "healthy": "स्वस्थ",
+      "attention": "ध्यान दें",
+      "problem": "समस्या",
+      "completed": "कटाई पूरी"
+    },
+    "wizard": {
+      "step1": {
+        "title": "फसल का प्रकार चुनें",
+        "desc": "आज आप किस प्रकार की फसल बो रहे हैं?",
+        "customLabel": "फसल का नाम निर्दिष्ट करें",
+        "customPlaceholder": "जैसे: आम, गाजर"
+      },
+      "step2": {
+        "title": "फसल की किस्म",
+        "desc": "इस फसल की विशिष्ट किस्म या प्रकार क्या है?",
+        "label": "फसल की किस्म",
+        "placeholder": "जैसे: पोन्नी, बासमती, ग्रैंड नैन",
+        "suggestionsLabel": "सामान्य किस्में:",
+        "unknownToggle": "मुझे नहीं पता / स्थानीय किस्म"
+      },
+      "step3": {
+        "title": "बुआई की तिथि",
+        "desc": "यह फसल मिट्टी में कब बोई या लगाई गई थी?",
+        "label": "बुआई की तिथि"
+      },
+      "step4": {
+        "title": "संभावित कटाई",
+        "desc": "उस तिथि का अनुमान लगाएं जब आप इस फसल की कटाई की उम्मीद करते हैं।",
+        "label": "संभावित कटाई तिथि",
+        "suggestPaddy": "सुझाई गई धान चक्र बुआई से ~120 दिन की है।",
+        "suggestBanana": "सुझाई गई केला चक्र बुआई से ~300 दिन की है।",
+        "suggestTomato": "सुझाई गई टमाटर चक्र बुआई से ~90 दिन की है।",
+        "disclaimer": "समय-सीमा के सुझाव केवल अनुमान हैं। मौसम की स्थिति के आधार पर कटाई की तिथियां भिन्न हो सकती हैं।"
+      },
+      "step5": {
+        "title": "विवरण की समीक्षा करें",
+        "desc": "विवरण दर्ज करने से पहले बुआई के विवरण की समीक्षा करें।"
+      },
+      "review": {
+        "cropType": "फसल का प्रकार",
+        "variety": "फसल की किस्म",
+        "datePlanted": "बुआई की तिथि",
+        "expectedHarvest": "संभावित कटाई",
+        "none": "निर्दिष्ट नहीं"
+      },
+      "actions": {
+        "back": "पीछे",
+        "next": "आगे",
+        "planting": "बुआई की जा रही है...",
+        "submit": "फसल बोएं"
+      }
+    },
+    "card": {
+      "plantedToday": "आज बोई गई",
+      "plantedDaysAgo": "{{days}} दिन पहले बोई गई",
+      "noVariety": "सामान्य",
+      "datePlanted": "बुआई की तिथि",
+      "duration": "समय-सीमा",
+      "season": "मौसम",
+      "problems": "समस्याएं",
+      "tasks": "कार्य",
+      "viewDetails": "कार्यक्षेत्र"
+    }
+  },
+  "notifications": {
+    "types": {
+      "CROP_CYCLE_STARTED": {
+        "title": "फसल सीजन शुरू हुआ",
+        "message": "सीजन {{name}} ({{seasonType}}, {{year}}) शुरू हो गया है।"
+      },
+      "CROP_CYCLE_COMPLETED": {
+        "title": "फसल सीजन पूरा हुआ",
+        "message": "सीजन {{name}} ({{seasonType}}, {{year}}) को कटाई पूरा होने के रूप में चिह्नित किया गया है।"
+      },
+      "DISEASE_REPORTED": {
+        "title": "फसल रोग की सूचना",
+        "message": "फसल {{cropName}} ({{cropVariety}}) पर रोग {{diseaseName}} की सूचना मिली है।"
+      },
+      "DISEASE_UNDER_REVIEW": {
+        "title": "रोग का मामला समीक्षाधीन है",
+        "message": "रोग का मामला {{diseaseName}} अब समीक्षा के अधीन है।"
+      },
+      "DISEASE_TREATED": {
+        "title": "रोग का उपचार चिह्नित",
+        "message": "रोग का मामला {{diseaseName}} का उपचार हो गया है।"
+      },
+      "DISEASE_CLOSED": {
+        "title": "रोग का मामला बंद",
+        "message": "रोग का मामला {{diseaseName}} बंद कर दिया गया है।"
+      },
+      "TREATMENT_PLANNED": {
+        "title": "उपचार की योजना बनाई गई",
+        "message": "उपचार {{treatmentName}} की योजना बनाई गई है।"
+      },
+      "TREATMENT_STARTED": {
+        "title": "उपचार शुरू हुआ",
+        "message": "उपचार {{treatmentName}} शुरू हो गया है।"
+      },
+      "TREATMENT_COMPLETED": {
+        "title": "उपचार पूरा हुआ",
+        "message": "उपचार {{treatmentName}} पूरा हो गया है।"
+      },
+      "TASK_CREATED": {
+        "title": "कार्य बनाया गया",
+        "message": "नया कार्य '{{title}}' बनाया गया है, जो {{dueDate}} तक देय है।"
+      },
+      "TASK_STARTED": {
+        "title": "कार्य शुरू हुआ",
+        "message": "कार्य '{{title}}' शुरू हो गया है।"
+      },
+      "TASK_COMPLETED": {
+        "title": "कार्य पूरा हुआ",
+        "message": "कार्य '{{title}}' पूरा कर लिया गया है।"
+      },
+      "TASK_CANCELLED": {
+        "title": "कार्य रद्द किया गया",
+        "message": "कार्य '{{title}}' रद्द कर दिया गया है।"
+      },
+      "CROP_PLANTING_CREATED": {
+        "title": "फसल बोई गई",
+        "message": "फसल {{cropName}} ({{cropVariety}}) को जोड़ दिया गया है।"
+      },
+      "CROP_PLANTING_UPDATED": {
+        "title": "फसल अपडेट की गई",
+        "message": "फसल {{cropName}} ({{cropVariety}}) का विवरण अपडेट किया गया है।"
+      }
+    }
+  },
+  "diseaseIncident": {
+    "title": "फसल की समस्याएं",
+    "subtitle": "खेत की समस्याओं, कीटों और फसल की बीमारियों को ट्रैक और प्रबंधित करें",
+    "reportButton": "समस्या की रिपोर्ट करें",
+    "reportModalTitle": "फसल की समस्या रिपोर्ट करें",
+    "reportModalSubtitle": "अपनी फसल के लिए किसी बीमारी, कीट या खेत की समस्या दर्ज करें",
+    "selectCrop": "फसल चुनें",
+    "diseaseName": "समस्या / बीमारी का नाम",
+    "diseaseNamePlaceholder": "जैसे: झुलसा रोग, पत्ती का धब्बा, जड़ सड़न, तना छेदक",
+    "description": "लक्षण / टिप्पणियां",
+    "descriptionPlaceholder": "पत्तियों, तनों या फलों पर देखे गए लक्षणों का वर्णन करें...",
+    "status": {
+      "REPORTED": "रिपोर्ट किया गया",
+      "UNDER_REVIEW": "समीक्षाधीन",
+      "TREATED": "उपचारित",
+      "CLOSED": "बंद"
+    },
+    "actions": {
+      "review": "समीक्षाधीन चिह्नित करें",
+      "treat": "उपचारित चिह्नित करें",
+      "close": "समस्या बंद करें",
+      "viewDetails": "समस्या देखें",
+      "cancel": "रद्द करें",
+      "submit": "रिपोर्ट जमा करें"
+    },
+    "emptyState": "कोई समस्या दर्ज नहीं है!",
+    "emptyStateDesc": "आपके खेत स्वस्थ और बीमारी मुक्त दिख रहे हैं।",
+    "filterAll": "सभी समस्याएं",
+    "filterOpen": "सक्रिय समस्याएं",
+    "filterClosed": "बंद समस्याएं",
+    "reportedOn": "रिपोर्ट की गई तिथि",
+    "suggestionsHint": "सामान्य समस्याएं: धान का झोंका रोग, तना छेदक, पत्ती झुलसा, पीला विषाणु"
+  },
+  "treatment": {
+    "title": "उपचार योजनाएं",
+    "subtitle": "छिड़काव कार्यक्रम, जैविक अनुप्रयोगों और उपचारात्मक उपचारों को प्रबंधित करें",
+    "addModalTitle": "नया उपचार आलेखित करें",
+    "addModalSubtitle": "रिपोर्ट की गई फसल समस्या के लिए उपचार योजना बनाएं",
+    "addButton": "उपचार योजना बनाएं",
+    "selectProblem": "बीमारी का मामला चुनें",
+    "treatmentName": "उपचार का नाम",
+    "treatmentNamePlaceholder": "जैसे: नीम तेल का छिड़काव, कॉपर फफूंदनाशी, जैविक कीटनाशक",
+    "dosage": "अनुशंसित खुराक",
+    "dosagePlaceholder": "जैसे: 5 मिली प्रति लीटर पानी, 200 ग्राम प्रति एकड़",
+    "applicationMethod": "प्रयोग विधि",
+    "methodPlaceholder": "विधि चुनें या दर्ज करें (पत्तियों पर छिड़काव, जड़ उपचार)",
+    "description": "प्रयोग निर्देश / टिप्पणियां",
+    "descriptionPlaceholder": "विशेष निर्देश (जैसे: सुबह-सुबह छिड़काव करें, सुरक्षात्मक गियर पहनें)...",
+    "targetLabel": "लक्ष्य",
+    "dosageLabel": "खुराक",
+    "methodLabel": "विधि",
+    "createdOn": "निर्माण तिथि",
+    "methods": {
+      "foliarSpray": "पत्तियों पर छिड़काव",
+      "soilDrenching": "जड़ उपचार",
+      "seedTreatment": "बीज उपचार",
+      "pruning": "कटाई-छंटाई"
+    },
+    "status": {
+      "PLANNED": "नियोजित",
+      "IN_PROGRESS": "प्रगति पर",
+      "COMPLETED": "पूर्ण"
+    },
+    "actions": {
+      "start": "उपचार शुरू करें",
+      "complete": "पूर्ण चिह्नित करें",
+      "viewDetails": "उपचार विवरण देखें",
+      "cancel": "रद्द करें",
+      "submit": "उपचार योजना सहेजें"
+    },
+    "emptyState": "कोई उपचार योजना दर्ज नहीं है",
+    "emptyStateDesc": "रिपोर्ट की गई समस्याओं के लिए योजना बनाने पर सक्रिय उपचार यहाँ दिखाई देंगे।",
+    "filterAll": "सभी उपचार",
+    "filterPlanned": "नियोजित",
+    "filterInProgress": "प्रगति पर",
+    "filterCompleted": "पूर्ण",
+    "methods": {
+      "foliar": "पत्तियों पर छिड़काव",
+      "drenching": "मृदा सिंचन (ड्रेंचिंग)",
+      "seed": "बीज उपचार",
+      "granular": "दानेदार छिड़काव"
+    }
+  },
+  "taskModal": {
+    "addModalTitle": "खेत का कार्य जोड़ें",
+    "addModalSubtitle": "उपचार योजना के लिए एक निर्धारित कार्य बनाएं",
+    "addButton": "कार्य जोड़ें",
+    "selectTreatment": "उपचार योजना चुनें",
+    "taskTitle": "कार्य का शीर्षक",
+    "taskTitlePlaceholder": "जैसे: घोल तैयार करें, छिड़काव करें, 48 घंटे बाद जांच करें",
+    "dueDate": "देय तिथि",
+    "description": "कार्य निर्देश / विवरण",
+    "descriptionPlaceholder": "खेत मजदूर के लिए विस्तृत निर्देश...",
+    "presetsLabel": "त्वरित कार्य विकल्प:",
+    "status": {
+      "PENDING": "लंबित",
+      "IN_PROGRESS": "प्रगति पर",
+      "COMPLETED": "पूर्ण",
+      "CANCELLED": "निरस्त"
+    },
+    "actions": {
+      "start": "कार्य शुरू करें",
+      "complete": "पूर्ण",
+      "cancel": "कार्य निरस्त करें",
+      "submit": "कार्य बनाएं"
+    },
+    "filterAll": "सभी कार्य",
+    "filterPending": "लंबित",
+    "filterInProgress": "प्रगति पर",
+    "filterCompleted": "पूर्ण",
+    "filterCancelled": "निरस्त"
+  }
+}

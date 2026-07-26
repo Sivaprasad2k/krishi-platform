@@ -4,11 +4,13 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enTranslation from './locales/en.json';
 import taTranslation from './locales/ta.json';
 import mlTranslation from './locales/ml.json';
+import hiTranslation from './locales/hi.json';
 
 const resources = {
   en: { translation: enTranslation },
   ta: { translation: taTranslation },
-  ml: { translation: mlTranslation }
+  ml: { translation: mlTranslation },
+  hi: { translation: hiTranslation }
 };
 
 i18n
@@ -25,5 +27,12 @@ i18n
       caches: ['localStorage']
     }
   });
+
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = i18n.language || 'en';
+  i18n.on('languageChanged', (lng) => {
+    document.documentElement.lang = lng;
+  });
+}
 
 export default i18n;

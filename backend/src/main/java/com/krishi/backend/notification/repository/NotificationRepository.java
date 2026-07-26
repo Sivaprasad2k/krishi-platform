@@ -18,6 +18,8 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
      */
     List<Notification> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    List<Notification> findByUserIdOrderByCreatedAtDesc(UUID userId, org.springframework.data.domain.Pageable pageable);
+
     /**
      * Find all unread notifications for a specific user, sorted by creation date descending.
      *

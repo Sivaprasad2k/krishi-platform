@@ -24,6 +24,11 @@ public class TaskResponse {
     private LocalDateTime dueDate;
     private LocalDateTime completedAt;
     private TaskStatus status;
+    private String skipReason;
+    private String cropName;
+    private String cropVariety;
+    private UUID farmId;
+    private String farmName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

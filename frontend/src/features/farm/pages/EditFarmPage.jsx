@@ -20,6 +20,10 @@ const EditFarmPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     location: '',
+    state: '',
+    district: '',
+    latitude: '',
+    longitude: '',
     status: 'ACTIVE'
   });
   const [sizeValue, setSizeValue] = useState('');
@@ -56,6 +60,10 @@ const EditFarmPage = () => {
       setFormData({
         name: selectedFarm?.name || '',
         location: selectedFarm?.location || '',
+        state: selectedFarm?.state || '',
+        district: selectedFarm?.district || '',
+        latitude: selectedFarm?.latitude != null ? selectedFarm.latitude.toString() : '',
+        longitude: selectedFarm?.longitude != null ? selectedFarm.longitude.toString() : '',
         status: selectedFarm?.status || 'ACTIVE'
       });
       setSizeValue(formattedVal);
@@ -78,6 +86,20 @@ const EditFarmPage = () => {
     if (!formData.location.trim()) {
       setValidationError(t('farm.wizard.validation.locationRequired', 'Farm location is required'));
       return false;
+    }
+    if (formData.latitude !== '' && formData.latitude !== null && formData.latitude !== undefined) {
+      const lat = parseFloat(formData.latitude);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        setValidationError(t('farm.wizard.validation.latitudeRange', 'Latitude must be between -90 and 90'));
+        return false;
+      }
+    }
+    if (formData.longitude !== '' && formData.longitude !== null && formData.longitude !== undefined) {
+      const lng = parseFloat(formData.longitude);
+      if (isNaN(lng) || lng < -180 || lng > 180) {
+        setValidationError(t('farm.wizard.validation.longitudeRange', 'Longitude must be between -180 and 180'));
+        return false;
+      }
     }
     const sizeStr = sizeValue.toString().trim();
     if (!sizeStr) {
@@ -109,6 +131,10 @@ const EditFarmPage = () => {
     const result = await updateFarm(farmId, {
       name: formData.name.trim(),
       location: formData.location.trim(),
+      state: formData.state?.trim() || null,
+      district: formData.district?.trim() || null,
+      latitude: formData.latitude !== '' && formData.latitude != null ? parseFloat(formData.latitude) : null,
+      longitude: formData.longitude !== '' && formData.longitude != null ? parseFloat(formData.longitude) : null,
       sizeHectares: haVal,
       status: formData.status
     });
@@ -155,16 +181,80 @@ const EditFarmPage = () => {
             {/* Farm Location Input */}
             <div className="space-y-2">
               <label htmlFor="editFarmLocation" className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
-                {t('farm.location', 'Farm Location')}
+                {t('farm.location', 'Farm Location / Village')} *
               </label>
               <input
                 id="editFarmLocation"
                 type="text"
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder="Location"
+                placeholder="e.g. Melur Village"
                 className="w-full h-12 px-4 rounded-xl border border-gray-250 font-semibold text-base focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
+            </div>
+
+            {/* Structured District & State Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="editFarmDistrict" className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  {t('farm.district', 'District (Optional)')}
+                </label>
+                <input
+                  id="editFarmDistrict"
+                  type="text"
+                  value={formData.district}
+                  onChange={(e) => handleInputChange('district', e.target.value)}
+                  placeholder="e.g. Madurai"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-250 font-semibold text-base focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="editFarmState" className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  {t('farm.state', 'State (Optional)')}
+                </label>
+                <input
+                  id="editFarmState"
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  placeholder="e.g. Tamil Nadu"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-250 font-semibold text-base focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* GPS Coordinates Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="editFarmLat" className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  {t('farm.latitude', 'Latitude (Optional GPS)')}
+                </label>
+                <input
+                  id="editFarmLat"
+                  type="number"
+                  step="any"
+                  value={formData.latitude}
+                  onChange={(e) => handleInputChange('latitude', e.target.value)}
+                  placeholder="e.g. 9.9252"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-250 font-semibold text-base focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="editFarmLng" className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  {t('farm.longitude', 'Longitude (Optional GPS)')}
+                </label>
+                <input
+                  id="editFarmLng"
+                  type="number"
+                  step="any"
+                  value={formData.longitude}
+                  onChange={(e) => handleInputChange('longitude', e.target.value)}
+                  placeholder="e.g. 78.1198"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-250 font-semibold text-base focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                />
+              </div>
             </div>
 
             {/* Farm Size & Status Row */}

@@ -25,4 +25,20 @@ public interface TreatmentRepository extends JpaRepository<Treatment, UUID> {
      * @return a list of treatments
      */
     List<Treatment> findByDiseaseIncidentCropPlantingId(UUID cropPlantingId);
+
+    /**
+     * Find all treatments owned by a farmer user, eager loading the hierarchy
+     * to eliminate N+1 queries.
+     *
+     * @param ownerId the UUID of the farm owner (farmer user)
+     * @return a list of treatments
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT t FROM Treatment t " +
+            "JOIN FETCH t.diseaseIncident di " +
+            "JOIN FETCH di.cropPlanting cp " +
+            "JOIN FETCH cp.cropCycle cc " +
+            "JOIN FETCH cc.farm f " +
+            "WHERE f.owner.id = :ownerId " +
+            "ORDER BY t.createdAt DESC")
+    List<Treatment> findByFarmerUserId(@org.springframework.data.repository.query.Param("ownerId") UUID ownerId);
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Plus, ShieldCheck, Filter } from 'lucide-react';
+import { AlertTriangle, Plus, ShieldCheck, Filter, X } from 'lucide-react';
 import StateView from '../../../shared/components/StateView';
 import ProblemCard from '../components/ProblemCard';
 import ReportProblemModal from '../components/ReportProblemModal';
@@ -9,6 +10,8 @@ import { fetchCropsList } from '../../crops/api/getSeasonCrops';
 
 export const DiseaseIncidentsPage = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const farmFilterId = searchParams.get('farmId');
 
   const [incidents, setIncidents] = useState([]);
   const [crops, setCrops] = useState([]);
@@ -44,7 +47,16 @@ export const DiseaseIncidentsPage = () => {
     loadData();
   }, []);
 
-  const filteredIncidents = incidents.filter((item) => {
+  const farmCrops = farmFilterId
+    ? crops.filter((c) => c.farmId === farmFilterId)
+    : crops;
+  const farmPlantingIds = new Set(farmCrops.map((c) => c.id));
+
+  const scopedIncidents = farmFilterId
+    ? incidents.filter((item) => farmPlantingIds.has(item.cropPlantingId))
+    : incidents;
+
+  const filteredIncidents = scopedIncidents.filter((item) => {
     if (activeTab === 'ACTIVE') return item.status !== 'CLOSED';
     if (activeTab === 'CLOSED') return item.status === 'CLOSED';
     return true;
@@ -74,6 +86,29 @@ export const DiseaseIncidentsPage = () => {
         </button>
       </div>
 
+      {/* Farm filter banner */}
+      {farmFilterId && (
+        <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-xs sm:text-sm font-bold text-red-800 animate-fade-in">
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-red-650 shrink-0" />
+            <span>
+              {t('diseaseIncident.filteredByFarm', 'Filtering crop problems by farm')}
+              {farmCrops[0]?.farmName ? `: ${farmCrops[0].farmName}` : ''}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              searchParams.delete('farmId');
+              setSearchParams(searchParams);
+            }}
+            className="flex items-center space-x-1 text-red-700 hover:text-red-900 font-extrabold hover:underline cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+            <span>{t('common.clearFilter', 'Clear Filter')}</span>
+          </button>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="flex items-center space-x-2 border-b border-[#C9DCCB] pb-3 overflow-x-auto select-none">
         <button
@@ -85,7 +120,7 @@ export const DiseaseIncidentsPage = () => {
               : 'bg-white text-[#525252] border border-[#C9DCCB] hover:bg-[#E3F2E6]'
           }`}
         >
-          {t('diseaseIncident.filterAll', 'All Issues')} ({incidents.length})
+          {t('diseaseIncident.filterAll', 'All Issues')} ({scopedIncidents.length})
         </button>
 
         <button
@@ -97,7 +132,7 @@ export const DiseaseIncidentsPage = () => {
               : 'bg-white text-[#525252] border border-[#C9DCCB] hover:bg-[#E3F2E6]'
           }`}
         >
-          {t('diseaseIncident.filterOpen', 'Active Issues')} ({incidents.filter(i => i.status !== 'CLOSED').length})
+          {t('diseaseIncident.filterOpen', 'Active Issues')} ({scopedIncidents.filter(i => i.status !== 'CLOSED').length})
         </button>
 
         <button
@@ -109,7 +144,7 @@ export const DiseaseIncidentsPage = () => {
               : 'bg-white text-[#525252] border border-[#C9DCCB] hover:bg-[#E3F2E6]'
           }`}
         >
-          {t('diseaseIncident.filterClosed', 'Closed Issues')} ({incidents.filter(i => i.status === 'CLOSED').length})
+          {t('diseaseIncident.filterClosed', 'Closed Issues')} ({scopedIncidents.filter(i => i.status === 'CLOSED').length})
         </button>
       </div>
 
@@ -135,7 +170,7 @@ export const DiseaseIncidentsPage = () => {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSuccess={loadData}
-        cropPlantings={crops}
+        cropPlantings={farmCrops}
       />
     </div>
   );

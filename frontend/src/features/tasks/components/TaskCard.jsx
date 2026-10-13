@@ -21,6 +21,7 @@ import {
 import { startTask, completeTask, cancelTask, skipTask } from '../api/taskApi';
 import TaskDetailsModal from './TaskDetailsModal';
 import RescheduleTaskModal from './RescheduleTaskModal';
+import SkipTaskModal from './SkipTaskModal';
 import StatusBadge from '../../../shared/components/StatusBadge';
 
 const TYPE_ICONS = {
@@ -41,9 +42,12 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
   const [loadingAction, setLoadingAction] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [isSkipOpen, setIsSkipOpen] = useState(false);
 
   const isOverdue = () => {
-    if (!task.dueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED' || task.status === 'SKIPPED') return false;
+    if (task.status === 'COMPLETED' || task.status === 'CANCELLED' || task.status === 'SKIPPED') return false;
+    if (task.status === 'OVERDUE') return true;
+    if (!task.dueDate) return false;
     const d = new Date(task.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -227,6 +231,11 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
           <div className="min-w-0 space-y-1 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-black text-[#222222] truncate leading-snug">{getFormattedTitle()}</h3>
+              {task.source === 'PLAN' && (
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#E3F2E6] text-[#087A55] border border-[#C9DCCB] shrink-0">
+                  {t('crops.plan.sectionTitle', 'Plan')}
+                </span>
+              )}
               {task.source === 'AUTOMATION' && (
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-100 shrink-0">
                   {t('tasks.source.automation', 'Auto Follow-up')}
@@ -271,7 +280,7 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
 
           {/* Action Workflow Controls */}
           <div className="flex items-center space-x-1.5">
-            {task.status === 'PENDING' && (
+            {(task.status === 'PENDING' || task.status === 'OVERDUE') && (
               <>
                 <button
                   onClick={handleStart}
@@ -281,6 +290,17 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
                 >
                   <Play className="h-3.5 w-3.5 fill-current" />
                   <span>{loadingAction === 'start' ? 'Updating...' : t('tasks.actions.start', 'Start Work')}</span>
+                </button>
+
+                <button
+                  onClick={handleComplete}
+                  disabled={loadingAction === 'complete'}
+                  style={{ minHeight: '44px' }}
+                  className="rounded-xl bg-[#087A55] hover:bg-[#066747] active:scale-95 text-white font-extrabold px-3 text-xs flex items-center space-x-1 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
+                  title={t('tasks.actions.complete', 'Complete Work')}
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{t('tasks.actions.completeShort', 'Done')}</span>
                 </button>
 
                 <button
@@ -296,8 +316,10 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
                 </button>
 
                 <button
-                  onClick={handleSkip}
-                  disabled={loadingAction === 'skip'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSkipOpen(true);
+                  }}
                   style={{ minHeight: '44px' }}
                   className="rounded-xl bg-[#F6FAF7] hover:bg-purple-50 text-[#57534e] hover:text-purple-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer disabled:opacity-50"
                   title={t('tasks.actions.skip', 'Skip Activity')}
@@ -342,8 +364,10 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
                 </button>
 
                 <button
-                  onClick={handleSkip}
-                  disabled={loadingAction === 'skip'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSkipOpen(true);
+                  }}
                   style={{ minHeight: '44px' }}
                   className="rounded-xl bg-[#F6FAF7] hover:bg-purple-50 text-[#57534e] hover:text-purple-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer disabled:opacity-50"
                   title={t('tasks.actions.skip', 'Skip Activity')}
@@ -369,7 +393,7 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
                   e.stopPropagation();
                   setIsDetailsOpen(true);
                 }}
-                className="text-xs font-bold text-gray-400 hover:text-emerald-700 flex items-center space-x-1 p-1"
+                className="text-xs font-bold text-gray-400 hover:text-emerald-700 flex items-center space-x-1 p-1 cursor-pointer"
               >
                 <span>{t('tasks.actions.viewDetails', 'View Details')}</span>
                 <ChevronRight className="h-4 w-4" />
@@ -392,6 +416,14 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
         task={task}
         isOpen={isRescheduleOpen}
         onClose={() => setIsRescheduleOpen(false)}
+        onSuccess={onStatusChange}
+      />
+
+      {/* Skip Task Modal */}
+      <SkipTaskModal
+        task={task}
+        isOpen={isSkipOpen}
+        onClose={() => setIsSkipOpen(false)}
         onSuccess={onStatusChange}
       />
     </>

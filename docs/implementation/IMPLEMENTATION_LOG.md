@@ -4,6 +4,57 @@ This log records sequential architectural changes, migrations, security enhancem
 
 ---
 
+## [2026-10-13] Milestone 3A: Core Workflow Stabilization
+
+### 1. Defect Confirmations & Architecture Audit
+- **P0 Defect 1 (Dashboard Task Consolidation):** The Home dashboard rendered urgent tasks by executing a client-side recursive waterfall across farms, crop cycles, and crop plantings, missing manual tasks, treatment tasks, and cultivation plan automation tasks.
+- **P0 Defect 2 (Overdue Task Actions Broken):** Overdue tasks were blocked in `TaskCard.jsx` and `TaskDetailsModal.jsx` due to strict `status === 'PENDING'` UI conditional guards, denying Start, Done, Reschedule, Skip, and Cancel actions that the backend permitted. Furthermore, skipping immediately triggered without capturing a valid agricultural reason.
+- **P1 Gap 1 (Treatments API Waterfall):** The Treatments page executed a 4-tier client-side request waterfall across farms -> cycles -> plantings -> incidents -> treatments, resulting in excessive network roundtrips.
+- **P1 Gap 2 (Farm Navigation & Structured Location):** `FarmDetailsPage.jsx` displayed disabled placeholder cards for Crops, Crop Problems, and Tasks instead of navigating with farm context; farm creation (`FarmFormWizard.jsx`) and editing (`EditFarmPage.jsx`) omitted structured `state`, `district`, and optional GPS coordinates.
+
+### 2. Database Schema Migrations
+- **`V20__add_task_skip_reason.sql`**:
+  - Added `skip_reason VARCHAR(255)` to `krishi.tasks` to persist farmer agricultural rationale when field operations are skipped.
+
+### 3. Backend Implementation & API Consolidation
+- **Task Domain & Enriched DTOs:**
+  - Added `skipReason` attribute to `Task` entity and `TaskResponse`.
+  - Created `TaskSkipRequest` validating `@NotBlank String reason`.
+  - Enriched `TaskResponse` with hierarchy metadata (`cropName`, `cropVariety`, `farmId`, `farmName`) via `TaskMapper.java`, eliminating client-side joins.
+  - Updated `TaskService.skipTask` and `TaskController.skipTask` (`POST /api/v1/tasks/{id}/skip`) to accept an optional body and persist the validated skip reason.
+- **Treatments Consolidation Endpoint:**
+  - Implemented `GET /api/v1/treatments` in `TreatmentController.java` restricted to `ROLE_FARMER`.
+  - Added `findByFarmerUserId` in `TreatmentRepository.java` utilizing eager `JOIN FETCH` across `diseaseIncident`, `cropPlanting`, `cropCycle`, and `farm`, executing in a single SQL query without N+1 overhead.
+  - Enriched `TreatmentResponse` with `diseaseName`, `cropPlantingId`, `cropName`, `cropVariety`, `farmId`, and `farmName` via `TreatmentMapper.java`.
+  - Enforced farmer ownership isolation (Farmer B receives empty list, cannot see Farmer A's treatments).
+
+### 4. Frontend Implementation & Workflow Fixes
+- **Dashboard Task Consolidation (`dashboardApi.js`, `DashboardPage.jsx`):**
+  - Replaced recursive client-side waterfall in `fetchFarmerOperations` with direct call to authenticated `GET /api/v1/tasks`.
+  - Filtered completed/cancelled/skipped tasks from urgent action queue.
+  - Prioritized work by urgency: overdue tasks sorted first, followed by earliest due date.
+  - Updated Dashboard card rendering with genuine crop names, farm badges, plan badges (`source: AUTOMATION`), and direct task links.
+- **Overdue Task Actions & Skip Reason (`TaskCard.jsx`, `TaskDetailsModal.jsx`, `taskApi.js`):**
+  - Updated `isOverdue` and action button guards to recognize `status === 'OVERDUE'`.
+  - Restored Start, Done, Reschedule, Skip, and Cancel actions for overdue tasks matching permitted backend transitions.
+  - Created `SkipTaskModal.jsx` featuring quick agronomic reason chips ("Adverse Weather / Rain", "Soil Moisture Adequate", "Crop Health Satisfactory", "Supplies / Labor Unavailable", "Completed Manually"), free text input, and validation before submission.
+  - Updated `taskApi.skipTask` to send `{ reason }`.
+- **Treatments API Consolidation (`treatmentApi.js`):**
+  - Replaced 60-line 4-tier waterfall in `fetchAllTreatments()` with direct call to `GET /api/v1/treatments`.
+- **Farm Navigation & Structured Location (`FarmDetailsPage.jsx`, `FarmFormWizard.jsx`, `EditFarmPage.jsx`, `TasksPage.jsx`, `CropsPage.jsx`, `DiseaseIncidentsPage.jsx`):**
+  - Replaced disabled placeholder cards in `FarmDetailsPage.jsx` with active operational navigation linking to `/crops?farmId=${farmId}`, `/disease-incidents?farmId=${farmId}`, and `/tasks?farmId=${farmId}`.
+  - Added structured location display (`state`, `district`, GPS coordinates) in `FarmDetailsPage.jsx`.
+  - Updated `TasksPage.jsx`, `CropsPage.jsx`, and `DiseaseIncidentsPage.jsx` with `useSearchParams` to filter records by `farmId` and display dismissible filter banners.
+  - Exposed `state`, `district`, `latitude` (-90 to 90), and `longitude` (-180 to 180) in Step 2 of `FarmFormWizard.jsx` and `EditFarmPage.jsx`.
+
+### 5. Automated Verification
+- **Backend Test Suite:** 49/49 tests passed (0 failures, 0 errors, 0 skipped), including new regression tests in `TaskIntegrationTest.java` (skip reason persistence, overdue task transitions, enriched hierarchy) and `TreatmentIntegrationTest.java` (consolidated endpoint, ownership isolation, enriched metadata).
+- **Frontend Test Suite:** 22/22 tests passed across 8 Vitest suites (`taskApi.test.js`, `treatmentApi.test.js`, `dashboardApi.test.js`, `cultivationPlanApi.test.js`, `getCrop.test.js`, `authStore.test.js`, `i18n.test.js`, `axios.test.js`).
+- **Production Build:** `vite build` completed cleanly with code 0 (PWA precache bundle generated).
+- **Git Whitespace Integrity:** `git diff --check` passed with code 0.
+
+---
+
 ## [2026-10-13] Milestone 2: Automatic Cultivation Planning & Branch Architecture Setup
 
 ### 1. Git Workflow & Dual-Developer Branch Initialization

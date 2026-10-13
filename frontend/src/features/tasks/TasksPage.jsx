@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import StateView from '../../shared/components/StateView';
-import { CheckSquare, Plus, CheckCircle } from 'lucide-react';
+import { CheckSquare, Plus, CheckCircle, Filter, X } from 'lucide-react';
 import TaskCard from './components/TaskCard';
 import CreateTaskModal from './components/CreateTaskModal';
 import { fetchAllTasks } from './api/taskApi';
@@ -12,6 +13,8 @@ import { fetchAllTasks } from './api/taskApi';
  */
 const TasksPage = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const farmFilterId = searchParams.get('farmId');
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,11 +76,15 @@ const TasksPage = () => {
   };
 
   const isActionableToday = (item) => {
-    if (item.status !== 'PENDING' && item.status !== 'IN_PROGRESS') return false;
-    return isToday(item.dueDate) || isOverdue(item.dueDate, item.status);
+    if (item.status !== 'PENDING' && item.status !== 'IN_PROGRESS' && item.status !== 'OVERDUE') return false;
+    return isToday(item.dueDate) || isOverdue(item.dueDate, item.status) || item.status === 'OVERDUE';
   };
 
-  const filteredTasks = tasks.filter((item) => {
+  const scopedTasks = farmFilterId
+    ? tasks.filter((t) => t.farmId === farmFilterId)
+    : tasks;
+
+  const filteredTasks = scopedTasks.filter((item) => {
     if (activeTab === 'TODAY') {
       return isActionableToday(item);
     }
@@ -88,9 +95,9 @@ const TasksPage = () => {
     return true;
   });
 
-  const todayCount = tasks.filter(isActionableToday).length;
-  const upcomingCount = tasks.filter(t => (t.status === 'PENDING' || t.status === 'IN_PROGRESS') && isFuture(t.dueDate)).length;
-  const completedCount = tasks.filter(t => t.status === 'COMPLETED').length;
+  const todayCount = scopedTasks.filter(isActionableToday).length;
+  const upcomingCount = scopedTasks.filter(t => (t.status === 'PENDING' || t.status === 'IN_PROGRESS') && isFuture(t.dueDate)).length;
+  const completedCount = scopedTasks.filter(t => t.status === 'COMPLETED').length;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
@@ -115,6 +122,29 @@ const TasksPage = () => {
           <span>{t('tasks.addWorkButton', 'Add Work')}</span>
         </button>
       </div>
+
+      {/* Farm filter banner */}
+      {farmFilterId && (
+        <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-800 animate-fade-in">
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>
+              {t('tasks.filteredByFarm', 'Filtering tasks by farm')}
+              {scopedTasks[0]?.farmName ? `: ${scopedTasks[0].farmName}` : ''}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              searchParams.delete('farmId');
+              setSearchParams(searchParams);
+            }}
+            className="flex items-center space-x-1 text-emerald-700 hover:text-emerald-900 font-extrabold hover:underline cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+            <span>{t('common.clearFilter', 'Clear Filter')}</span>
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex items-center space-x-2 border-b border-[#C9DCCB] pb-3 overflow-x-auto select-none">

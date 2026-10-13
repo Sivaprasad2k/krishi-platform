@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import StateView from '../../shared/components/StateView';
-import { Sprout, ChevronRight, HelpCircle, Layers, AlertTriangle, CheckSquare, Compass } from 'lucide-react';
+import { Sprout, ChevronRight, HelpCircle, Layers, AlertTriangle, CheckSquare, Compass, Filter, X } from 'lucide-react';
 import { fetchFarmerCropsWithWorkflows } from '../dashboard/api/dashboardApi';
 
 /**
@@ -12,6 +12,9 @@ import { fetchFarmerCropsWithWorkflows } from '../dashboard/api/dashboardApi';
 const CropsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const farmFilterId = searchParams.get('farmId');
+
   const [crops, setCrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -65,6 +68,8 @@ const CropsPage = () => {
     return status;
   };
 
+  const displayedCrops = farmFilterId ? crops.filter((c) => c.farmId === farmFilterId) : crops;
+
   return (
     <div className="space-y-6">
       {/* Title Header */}
@@ -74,6 +79,29 @@ const CropsPage = () => {
           {t('dashboard.status', 'Farm Operations Overview')}
         </p>
       </div>
+
+      {/* Farm filter banner */}
+      {farmFilterId && (
+        <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-800 animate-fade-in">
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>
+              {t('crops.filteredByFarm', 'Filtering crops by farm')}
+              {displayedCrops[0]?.farmName ? `: ${displayedCrops[0].farmName}` : ''}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              searchParams.delete('farmId');
+              setSearchParams(searchParams);
+            }}
+            className="flex items-center space-x-1 text-emerald-700 hover:text-emerald-900 font-extrabold hover:underline cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+            <span>{t('common.clearFilter', 'Clear Filter')}</span>
+          </button>
+        </div>
+      )}
 
       <StateView
         state={viewState}
@@ -85,7 +113,7 @@ const CropsPage = () => {
         emptyIcon={Sprout}
       >
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {crops.map((crop) => (
+          {displayedCrops.map((crop) => (
             <div
               key={crop.id}
               className="rounded-2xl bg-white p-5 border border-gray-200 shadow-sm flex flex-col justify-between hover:border-emerald-350 transition-all hover:shadow-md"
@@ -167,10 +195,14 @@ const CropsPage = () => {
                   {getLocalizedStatus(crop.status)}
                 </span>
                 
-                <div className="flex items-center text-emerald-700 font-extrabold text-sm hover:underline cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/crops/${crop.id}`)}
+                  className="flex items-center text-emerald-700 font-extrabold text-sm hover:underline cursor-pointer bg-transparent border-0 p-0"
+                >
                   <span>{t('farm.actions.viewDetails', 'View details')}</span>
                   <ChevronRight className="h-4 w-4 ml-0.5" />
-                </div>
+                </button>
               </div>
             </div>
           ))}

@@ -244,23 +244,49 @@ const DashboardPage = () => {
                   </div>
                 ))}
 
-                {/* 2. Tasks Overdue / Pending */}
-                {tasks.map(task => (
+                {/* 2. Tasks Overdue / Due Actionable */}
+                {tasks.slice(0, 5).map(task => (
                   <div
                     key={task.id}
-                    className="bg-amber-50/20 border border-amber-200 border-l-4 border-l-amber-500 p-4.5 rounded-2xl flex items-start space-x-3.5 shadow-sm"
+                    onClick={() => navigate('/tasks')}
+                    className={`border border-l-4 p-4.5 rounded-2xl flex items-start space-x-3.5 shadow-2xs cursor-pointer hover:opacity-90 transition-all ${
+                      task.isOverdue
+                        ? 'bg-red-50/30 border-[#C9DCCB] border-l-[#DC2626]'
+                        : 'bg-amber-50/20 border-[#C9DCCB] border-l-[#D97706]'
+                    }`}
                   >
-                    <Clock className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-base font-extrabold text-amber-800">
-                        {t('dashboard.attention.taskOverdue', { name: task.title, date: task.time })}
-                      </h4>
-                      <p className="text-sm font-semibold text-gray-500 mt-0.5">
-                        {task.crop} • {task.farmName}
+                    {task.isOverdue ? (
+                      <AlertTriangle className="h-6 w-6 text-[#DC2626] shrink-0 mt-0.5" />
+                    ) : (
+                      <Clock className="h-6 w-6 text-[#D97706] shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <h4 className={`text-base font-black truncate ${task.isOverdue ? 'text-red-900' : 'text-[#222222]'}`}>
+                          {task.isOverdue
+                            ? t('dashboard.attention.taskOverdue', { name: task.title, date: task.time })
+                            : `${task.title} (${task.time})`}
+                        </h4>
+                        {(task.source === 'PLAN' || task.source === 'AUTOMATION') && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#E3F2E6] text-[#087A55] border border-[#C9DCCB] shrink-0">
+                            {task.source === 'PLAN' ? t('crops.plan.sectionTitle', 'Plan') : t('tasks.source.automation', 'Auto')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-[#525252] mt-0.5">
+                        {task.crop} {task.cropVariety ? `(${task.cropVariety})` : ''} • {task.farmName}
                       </p>
                     </div>
                   </div>
                 ))}
+                {tasks.length > 5 && (
+                  <button
+                    onClick={() => navigate('/tasks')}
+                    className="w-full text-center text-xs font-black text-[#087A55] hover:underline py-1 cursor-pointer"
+                  >
+                    {t('dashboard.attention.viewAllTasks', 'View all {{count}} active field tasks', { count: tasks.length })} &rarr;
+                  </button>
+                )}
 
                 {/* 3. Alerts notifications */}
                 {alerts.slice(0, 2).map(alert => (

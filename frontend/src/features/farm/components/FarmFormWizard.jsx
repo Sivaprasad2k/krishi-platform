@@ -26,6 +26,10 @@ const FarmFormWizard = ({ onSubmit, submitting, submitError }) => {
   const [formData, setFormData] = useState({
     name: '',
     location: '',
+    state: '',
+    district: '',
+    latitude: '',
+    longitude: '',
     sizeValue: '',
     sizeUnit: 'ACRE', // Default to Acre for Indian farming context
     photo: null,
@@ -73,6 +77,20 @@ const FarmFormWizard = ({ onSubmit, submitting, submitError }) => {
       if (!formData.location.trim()) {
         setValidationError(t('farm.wizard.validation.locationRequired', 'Please enter your farm location'));
         return false;
+      }
+      if (formData.latitude !== '' && formData.latitude !== null && formData.latitude !== undefined) {
+        const lat = parseFloat(formData.latitude);
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+          setValidationError(t('farm.wizard.validation.latitudeRange', 'Latitude must be between -90 and 90'));
+          return false;
+        }
+      }
+      if (formData.longitude !== '' && formData.longitude !== null && formData.longitude !== undefined) {
+        const lng = parseFloat(formData.longitude);
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+          setValidationError(t('farm.wizard.validation.longitudeRange', 'Longitude must be between -180 and 180'));
+          return false;
+        }
       }
     }
     if (step === 3) {
@@ -204,6 +222,10 @@ const FarmFormWizard = ({ onSubmit, submitting, submitError }) => {
       onSubmit({
         name: formData.name.trim(),
         location: formData.location.trim(),
+        state: formData.state?.trim() || null,
+        district: formData.district?.trim() || null,
+        latitude: formData.latitude !== '' && formData.latitude != null ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude !== '' && formData.longitude != null ? parseFloat(formData.longitude) : null,
         sizeHectares: ha,
         sizeValue: parseFloat(formData.sizeValue),
         sizeUnit: formData.sizeUnit,
@@ -297,20 +319,20 @@ const FarmFormWizard = ({ onSubmit, submitting, submitError }) => {
                 {t('farm.wizard.step2Title', 'Where is this farm?')}
               </h2>
               <p className="text-sm text-gray-400 font-semibold mt-1">
-                {t('farm.wizard.step2Desc', 'Enter village, town, or district name.')}
+                {t('farm.wizard.step2Desc', 'Enter village, town, state, and optional coordinates.')}
               </p>
             </div>
 
             <div className="space-y-2">
               <label htmlFor="farmLocation" className="block text-xs font-black text-gray-500 uppercase tracking-wider">
-                {t('farm.location', 'Farm Location')}
+                {t('farm.location', 'Farm Location / Village')} *
               </label>
               <input
                 id="farmLocation"
                 type="text"
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder={t('farm.wizard.placeholderLocation', 'e.g. Madurai, Tamil Nadu')}
+                placeholder={t('farm.wizard.placeholderLocation', 'e.g. Melur Village')}
                 style={{ minHeight: '48px' }}
                 className={`w-full px-4 rounded-2xl border font-extrabold text-base text-gray-850 transition-all focus:outline-hidden ${
                   validationError
@@ -319,6 +341,72 @@ const FarmFormWizard = ({ onSubmit, submitting, submitError }) => {
                 }`}
                 aria-invalid={!!validationError}
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label htmlFor="farmDistrict" className="block text-xs font-black text-gray-500 uppercase tracking-wider">
+                  {t('farm.district', 'District (Optional)')}
+                </label>
+                <input
+                  id="farmDistrict"
+                  type="text"
+                  value={formData.district}
+                  onChange={(e) => handleInputChange('district', e.target.value)}
+                  placeholder="e.g. Madurai"
+                  style={{ minHeight: '44px' }}
+                  className="w-full px-4 rounded-xl border border-gray-250 font-bold text-sm text-gray-800 transition-all focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="farmState" className="block text-xs font-black text-gray-500 uppercase tracking-wider">
+                  {t('farm.state', 'State (Optional)')}
+                </label>
+                <input
+                  id="farmState"
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  placeholder="e.g. Tamil Nadu"
+                  style={{ minHeight: '44px' }}
+                  className="w-full px-4 rounded-xl border border-gray-250 font-bold text-sm text-gray-800 transition-all focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <label htmlFor="farmLat" className="block text-xs font-black text-gray-500 uppercase tracking-wider">
+                  {t('farm.latitude', 'Latitude (Optional GPS)')}
+                </label>
+                <input
+                  id="farmLat"
+                  type="number"
+                  step="any"
+                  value={formData.latitude}
+                  onChange={(e) => handleInputChange('latitude', e.target.value)}
+                  placeholder="e.g. 9.9252"
+                  style={{ minHeight: '44px' }}
+                  className="w-full px-4 rounded-xl border border-gray-250 font-bold text-sm text-gray-800 transition-all focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="farmLng" className="block text-xs font-black text-gray-500 uppercase tracking-wider">
+                  {t('farm.longitude', 'Longitude (Optional GPS)')}
+                </label>
+                <input
+                  id="farmLng"
+                  type="number"
+                  step="any"
+                  value={formData.longitude}
+                  onChange={(e) => handleInputChange('longitude', e.target.value)}
+                  placeholder="e.g. 78.1198"
+                  style={{ minHeight: '44px' }}
+                  className="w-full px-4 rounded-xl border border-gray-250 font-bold text-sm text-gray-800 transition-all focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -494,7 +582,19 @@ const FarmFormWizard = ({ onSubmit, submitting, submitError }) => {
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                   <span className="font-bold text-gray-400 uppercase text-xs tracking-wider">{t('farm.location', 'Location')}</span>
-                  <span className="font-bold text-gray-700 truncate max-w-[200px]">{formData.location}</span>
+                  <div className="text-right max-w-[200px]">
+                    <span className="font-bold text-gray-700 truncate block">{formData.location}</span>
+                    {(formData.district || formData.state) && (
+                      <span className="text-xs text-gray-500 font-semibold block truncate">
+                        {[formData.district, formData.state].filter(Boolean).join(', ')}
+                      </span>
+                    )}
+                    {formData.latitude && formData.longitude && (
+                      <span className="text-[11px] text-gray-400 font-mono block">
+                        GPS: {Number(formData.latitude).toFixed(4)}°, {Number(formData.longitude).toFixed(4)}°
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-gray-400 uppercase text-xs tracking-wider">{t('farm.size', 'Size')}</span>

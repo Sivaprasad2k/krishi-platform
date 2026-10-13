@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { startTask, completeTask, cancelTask, skipTask } from '../api/taskApi';
 import RescheduleTaskModal from './RescheduleTaskModal';
+import SkipTaskModal from './SkipTaskModal';
 
 const WORK_TYPES_MAP = {
   IRRIGATION: { labelKey: 'tasks.types.IRRIGATION', defaultTitle: 'Water Crop', color: 'text-blue-600 bg-blue-50' },
@@ -39,12 +40,15 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [isSkipOpen, setIsSkipOpen] = useState(false);
   const [actionError, setActionError] = useState('');
 
   if (!isOpen || !task) return null;
 
   const isOverdue = () => {
-    if (!task.dueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED' || task.status === 'SKIPPED') return false;
+    if (task.status === 'COMPLETED' || task.status === 'CANCELLED' || task.status === 'SKIPPED') return false;
+    if (task.status === 'OVERDUE') return true;
+    if (!task.dueDate) return false;
     const d = new Date(task.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -334,7 +338,7 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
           {/* Regular Action Buttons */}
           {!showConfirmComplete && !showConfirmCancel && (
             <div className="flex flex-wrap items-center justify-end gap-2.5">
-              {task.status === 'PENDING' && (
+              {(task.status === 'PENDING' || task.status === 'OVERDUE') && (
                 <>
                   <button
                     onClick={() => setShowConfirmCancel(true)}
@@ -350,9 +354,8 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
                     <span>{t('tasks.actions.reschedule', 'Reschedule')}</span>
                   </button>
                   <button
-                    onClick={handleSkip}
-                    disabled={loadingAction === 'skip'}
-                    className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-250 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-bold text-xs flex items-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
+                    onClick={() => setIsSkipOpen(true)}
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-250 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-bold text-xs flex items-center space-x-1 transition-all cursor-pointer"
                   >
                     <FastForward className="h-4 w-4" />
                     <span>{t('tasks.actions.skip', 'Skip')}</span>
@@ -364,6 +367,13 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
                   >
                     <Play className="h-4 w-4 fill-current" />
                     <span>{loadingAction === 'start' ? 'Updating...' : t('tasks.actions.start', 'Start Work')}</span>
+                  </button>
+                  <button
+                    onClick={() => setShowConfirmComplete(true)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    <span>{t('tasks.actions.complete', 'Mark Complete')}</span>
                   </button>
                 </>
               )}
@@ -384,9 +394,8 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
                     <span>{t('tasks.actions.reschedule', 'Reschedule')}</span>
                   </button>
                   <button
-                    onClick={handleSkip}
-                    disabled={loadingAction === 'skip'}
-                    className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-250 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-bold text-xs flex items-center space-x-1 transition-all cursor-pointer disabled:opacity-50"
+                    onClick={() => setIsSkipOpen(true)}
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-250 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-bold text-xs flex items-center space-x-1 transition-all cursor-pointer"
                   >
                     <FastForward className="h-4 w-4" />
                     <span>{t('tasks.actions.skip', 'Skip')}</span>
@@ -418,6 +427,16 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
         task={task}
         isOpen={isRescheduleOpen}
         onClose={() => setIsRescheduleOpen(false)}
+        onSuccess={() => {
+          if (onStatusChange) onStatusChange();
+          onClose();
+        }}
+      />
+
+      <SkipTaskModal
+        task={task}
+        isOpen={isSkipOpen}
+        onClose={() => setIsSkipOpen(false)}
         onSuccess={() => {
           if (onStatusChange) onStatusChange();
           onClose();

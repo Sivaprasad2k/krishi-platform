@@ -46,68 +46,9 @@ export const completeTreatment = async (id) => {
 };
 
 /**
- * Traverses farms, crop cycles, plantings, and disease incidents to collect all treatments across the farm.
+ * Fetches all treatments for the authenticated farmer directly from GET /treatments.
  */
 export const fetchAllTreatments = async () => {
-  try {
-    const farmsRes = await apiClient.get('/farms');
-    const farms = farmsRes.data?.data || [];
-
-    let allTreatments = [];
-
-    for (const farm of farms) {
-      if (!farm?.id) continue;
-      try {
-        const cyclesRes = await apiClient.get(`/farms/${farm.id}/crop-cycles`);
-        const cycles = cyclesRes.data?.data || [];
-
-        for (const cycle of cycles) {
-          if (!cycle?.id) continue;
-          try {
-            const plantingsRes = await apiClient.get(`/crop-cycles/${cycle.id}/plantings`);
-            const plantings = plantingsRes.data?.data || [];
-
-            for (const planting of plantings) {
-              if (!planting?.id) continue;
-              try {
-                const incidentsRes = await apiClient.get(`/crop-plantings/${planting.id}/disease-incidents`);
-                const incidents = incidentsRes.data?.data || [];
-
-                for (const incident of incidents) {
-                  if (!incident?.id) continue;
-                  try {
-                    const treatmentsRes = await apiClient.get(`/disease-incidents/${incident.id}/treatments`);
-                    const treatments = treatmentsRes.data?.data || [];
-
-                    for (const treatment of treatments) {
-                      allTreatments.push({
-                        ...treatment,
-                        diseaseName: incident.diseaseName || 'Disease Incident',
-                        cropName: planting.cropName || cycle.cropName || 'Crop',
-                        cropVariety: planting.cropVariety || 'Standard',
-                        farmName: farm.name || 'Farm'
-                      });
-                    }
-                  } catch (err) {
-                    console.warn(`Failed to fetch treatments for incident ${incident.id}:`, err);
-                  }
-                }
-              } catch (err) {
-                console.warn(`Failed to fetch incidents for planting ${planting.id}:`, err);
-              }
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch plantings for cycle ${cycle.id}:`, err);
-          }
-        }
-      } catch (err) {
-        console.warn(`Failed to fetch cycles for farm ${farm.id}:`, err);
-      }
-    }
-
-    return allTreatments;
-  } catch (error) {
-    console.error('Failed to fetch all treatments:', error);
-    throw error;
-  }
+  const response = await apiClient.get('/treatments');
+  return response.data?.data || [];
 };

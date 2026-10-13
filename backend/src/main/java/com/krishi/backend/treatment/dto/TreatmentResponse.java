@@ -12,6 +12,12 @@ import java.util.UUID;
 public class TreatmentResponse {
     private UUID id;
     private UUID diseaseIncidentId;
+    private String diseaseName;
+    private UUID cropPlantingId;
+    private String cropName;
+    private String cropVariety;
+    private UUID farmId;
+    private String farmName;
     private String treatmentName;
     private String description;
     private String recommendedDosage;

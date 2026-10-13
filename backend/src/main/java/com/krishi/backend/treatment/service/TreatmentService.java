@@ -179,6 +179,19 @@ public class TreatmentService {
     }
 
     /**
+     * Lists all treatments across all disease incidents for the authenticated farmer, enforcing ownership.
+     */
+    @Transactional(readOnly = true)
+    public List<TreatmentResponse> getAllTreatmentsForUser(CustomUserDetails userDetails) {
+        validateFarmerRole(userDetails);
+
+        List<Treatment> treatments = treatmentRepository.findByFarmerUserId(userDetails.getUserId());
+        return treatments.stream()
+                .map(treatmentMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Enforces the ROLE_FARMER check.
      */
     private void validateFarmerRole(CustomUserDetails userDetails) {

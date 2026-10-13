@@ -19,102 +19,123 @@ export const getAlerts = async () => {
 };
 
 /**
- * Recursively traverses all entity collections to aggregate:
- * 1. Unresolved Disease Incidents (Crop Problems)
- * 2. Pending and In-Progress Tasks (Work To Do)
+ * Consolidates farmer operational priorities for the Home dashboard:
+ * 1. Actionable Tasks (Cultivation Plans, Manual work, Treatment-related work) via GET /tasks
+ * 2. Unresolved Disease Incidents (Crop Problems)
  */
 export const fetchFarmerOperations = async () => {
   try {
-    const farmsRes = await apiClient.get('/farms');
-    const farms = farmsRes.data?.data || [];
-    
-    let allProblems = [];
     let allTasks = [];
+    let allProblems = [];
 
-    // Traverse each farm
-    for (const farm of farms) {
-      if (!farm?.id) continue;
-      try {
-        const cyclesRes = await apiClient.get(`/farms/${farm.id}/crop-cycles`);
-        const cycles = cyclesRes.data?.data || [];
-        const activeCycles = cycles.filter(c => c?.status === 'ACTIVE');
+    // 1. Fetch all actionable tasks directly via authenticated backend GET /tasks
+    try {
+      const tasksRes = await apiClient.get('/tasks');
+      const rawTasks = tasksRes.data?.data || [];
 
-        // Traverse each active cycle
-        for (const cycle of activeCycles) {
-          if (!cycle?.id) continue;
-          try {
-            const plantingsRes = await apiClient.get(`/crop-cycles/${cycle.id}/plantings`);
-            const plantings = plantingsRes.data?.data || [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-            // Traverse each planting
-            for (const planting of plantings) {
-              if (!planting?.id) continue;
-              try {
-                const incidentsRes = await apiClient.get(`/crop-plantings/${planting.id}/disease-incidents`);
-                const incidents = incidentsRes.data?.data || [];
-                
-                // Only collect unresolved incidents (REPORTED, UNDER_REVIEW, TREATED)
-                const unresolvedIncidents = incidents.filter(
-                  inc => inc?.status !== 'CLOSED' && inc?.status !== 'RESOLVED'
-                );
-                
-                for (const incident of unresolvedIncidents) {
-                  if (!incident?.id) continue;
-                  allProblems.push({
-                    id: incident.id,
-                    title: incident.diseaseName || 'Reported Incident',
-                    crop: planting.cropName || cycle.cropName || 'Crop',
-                    severity: incident.severity || 'MEDIUM',
-                    reportedDate: incident.createdAt ? new Date(incident.createdAt).toLocaleDateString() : 'Recently',
-                    status: incident.status,
-                    farmName: farm.name || 'Farm'
-                  });
+      const activeTasks = rawTasks.filter(
+        t => t?.status !== 'COMPLETED' && t?.status !== 'CANCELLED' && t?.status !== 'SKIPPED'
+      );
 
-                  try {
-                    const treatmentsRes = await apiClient.get(`/disease-incidents/${incident.id}/treatments`);
-                    const treatments = treatmentsRes.data?.data || [];
-                    
-                    for (const treatment of treatments) {
-                      if (!treatment?.id) continue;
-                      try {
-                        const tasksRes = await apiClient.get(`/treatments/${treatment.id}/tasks`);
-                        const tasks = tasksRes.data?.data || [];
-                        
-                        // Filter for pending/in-progress tasks
-                        const pendingTasks = tasks.filter(
-                          t => t?.status === 'PENDING' || t?.status === 'IN_PROGRESS'
-                        );
-
-                        for (const task of pendingTasks) {
-                          if (!task?.id) continue;
-                          allTasks.push({
-                            id: task.id,
-                            title: task.title,
-                            crop: planting.cropName || cycle.cropName || 'Crop',
-                            time: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Today',
-                            status: task.status,
-                            farmName: farm.name || 'Farm'
-                          });
-                        }
-                      } catch (err) {
-                        console.warn(`Failed to fetch tasks for treatment ${treatment.id}:`, err);
-                      }
-                    }
-                  } catch (err) {
-                    console.warn(`Failed to fetch treatments for incident ${incident.id}:`, err);
-                  }
-                }
-              } catch (err) {
-                console.warn(`Failed to fetch incidents for planting ${planting.id}:`, err);
-              }
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch plantings for cycle ${cycle.id}:`, err);
+      allTasks = activeTasks.map(task => {
+        let isOverdue = task.status === 'OVERDUE';
+        if (task.dueDate && !isOverdue) {
+          const d = new Date(task.dueDate);
+          d.setHours(23, 59, 59, 999);
+          if (d < today) {
+            isOverdue = true;
           }
         }
-      } catch (err) {
-        console.warn(`Failed to fetch crop cycles for farm ${farm.id}:`, err);
+
+        return {
+          id: task.id,
+          title: task.title,
+          crop: task.cropName || 'Crop',
+          cropName: task.cropName || 'Crop',
+          cropVariety: task.cropVariety || '',
+          time: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Today',
+          status: task.status,
+          isOverdue: isOverdue,
+          dueDate: task.dueDate,
+          taskType: task.taskType,
+          source: task.source,
+          farmName: task.farmName || 'Farm',
+          farmId: task.farmId
+        };
+      });
+
+      // Sort by urgency: overdue first, then by earliest due date
+      allTasks.sort((a, b) => {
+        if (a.isOverdue && !b.isOverdue) return -1;
+        if (!a.isOverdue && b.isOverdue) return 1;
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && b.dueDate) return 1;
+        return 0;
+      });
+    } catch (taskErr) {
+      console.warn('Failed to fetch tasks for dashboard operations:', taskErr);
+    }
+
+    // 2. Fetch unresolved disease incidents
+    try {
+      const farmsRes = await apiClient.get('/farms');
+      const farms = farmsRes.data?.data || [];
+
+      for (const farm of farms) {
+        if (!farm?.id) continue;
+        try {
+          const cyclesRes = await apiClient.get(`/farms/${farm.id}/crop-cycles`);
+          const cycles = cyclesRes.data?.data || [];
+          const activeCycles = cycles.filter(c => c?.status === 'ACTIVE' || c?.status === 'DRAFT');
+
+          for (const cycle of activeCycles) {
+            if (!cycle?.id) continue;
+            try {
+              const plantingsRes = await apiClient.get(`/crop-cycles/${cycle.id}/plantings`);
+              const plantings = plantingsRes.data?.data || [];
+
+              for (const planting of plantings) {
+                if (!planting?.id) continue;
+                try {
+                  const incidentsRes = await apiClient.get(`/crop-plantings/${planting.id}/disease-incidents`);
+                  const incidents = incidentsRes.data?.data || [];
+
+                  const unresolvedIncidents = incidents.filter(
+                    inc => inc?.status !== 'CLOSED' && inc?.status !== 'RESOLVED'
+                  );
+
+                  for (const incident of unresolvedIncidents) {
+                    if (!incident?.id) continue;
+                    allProblems.push({
+                      id: incident.id,
+                      title: incident.diseaseName || 'Reported Incident',
+                      crop: planting.cropName || cycle.cropName || 'Crop',
+                      cropVariety: planting.cropVariety || '',
+                      severity: incident.severity || 'MEDIUM',
+                      reportedDate: incident.createdAt ? new Date(incident.createdAt).toLocaleDateString() : 'Recently',
+                      status: incident.status,
+                      farmName: farm.name || 'Farm',
+                      farmId: farm.id
+                    });
+                  }
+                } catch (err) {
+                  console.warn(`Failed to fetch incidents for planting ${planting.id}:`, err);
+                }
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch plantings for cycle ${cycle.id}:`, err);
+            }
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch crop cycles for farm ${farm.id}:`, err);
+        }
       }
+    } catch (farmErr) {
+      console.warn('Failed to fetch farms for incident operations:', farmErr);
     }
 
     return {
@@ -195,6 +216,7 @@ export const fetchFarmerCropsWithWorkflows = async () => {
               list.push({
                 id: planting.id,
                 plantingName: planting.cropName || cycle.cropName || 'Crop',
+                farmId: farm.id,
                 farmName: farm.name || 'Farm',
                 seasonName: cycle.name || 'Samba 2026',
                 sizeHectares: planting.areaHectares || cycle.areaHectares || farm.sizeHectares || 0,

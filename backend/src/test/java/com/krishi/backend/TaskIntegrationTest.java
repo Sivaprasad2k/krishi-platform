@@ -377,4 +377,126 @@ public class TaskIntegrationTest {
         JsonNode treatTasksNode = objectMapper.readTree(treatTasksResult.getResponse().getContentAsString()).get("data");
         assertEquals(1, treatTasksNode.size());
     }
+
+    @Test
+    void testSkipTaskWithReasonAndEnrichedHierarchy() throws Exception {
+        String token = registerAndLogin("Farmer Eva", "9888888885", "eva.skip@krishi.com", "Pass@123");
+
+        UUID farmId = createFarm("Sunrise Farm", token);
+        UUID cycleId = createCropCycleAndStart("Spring 2026", farmId, token);
+        UUID plantingId = createCropPlanting(cycleId, "Wheat", token);
+
+        TaskCreateRequest taskRequest = new TaskCreateRequest();
+        taskRequest.setCropPlantingId(plantingId);
+        taskRequest.setTaskType(TaskType.IRRIGATION);
+        taskRequest.setTitle("Field Flood Irrigation");
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/tasks")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode createNode = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("data");
+        UUID taskId = UUID.fromString(createNode.get("id").asText());
+        assertEquals("Sunrise Farm", createNode.get("farmName").asText());
+        assertEquals("Wheat", createNode.get("cropName").asText());
+        assertEquals(farmId.toString(), createNode.get("farmId").asText());
+
+        // Skip with validated reason
+        String skipJson = "{\"reason\":\"Adverse Weather / Heavy Rain\"}";
+        MvcResult skipResult = mockMvc.perform(post("/api/v1/tasks/" + taskId + "/skip")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(skipJson))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode skipNode = objectMapper.readTree(skipResult.getResponse().getContentAsString()).get("data");
+        assertEquals("SKIPPED", skipNode.get("status").asText());
+        assertEquals("Adverse Weather / Heavy Rain", skipNode.get("skipReason").asText());
+
+        // Verify retrieval via GET /api/v1/tasks persists skipReason
+        MvcResult listResult = mockMvc.perform(get("/api/v1/tasks")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // Verify backward compatibility: skipping without body succeeds with null skipReason
+        TaskCreateRequest taskRequest2 = new TaskCreateRequest();
+        taskRequest2.setCropPlantingId(plantingId);
+        taskRequest2.setTaskType(TaskType.WEEDING);
+        taskRequest2.setTitle("Manual Weeding");
+
+        MvcResult createResult2 = mockMvc.perform(post("/api/v1/tasks")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskRequest2)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        UUID taskId2 = UUID.fromString(objectMapper.readTree(createResult2.getResponse().getContentAsString()).get("data").get("id").asText());
+
+        MvcResult skipResult2 = mockMvc.perform(post("/api/v1/tasks/" + taskId2 + "/skip")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode skipNode2 = objectMapper.readTree(skipResult2.getResponse().getContentAsString()).get("data");
+        assertEquals("SKIPPED", skipNode2.get("status").asText());
+        assertTrue(skipNode2.get("skipReason") == null || skipNode2.get("skipReason").isNull());
+    }
+
+    @Test
+    void testOverdueTaskAllowedTransitions() throws Exception {
+        String token = registerAndLogin("Farmer Frank", "9888888886", "frank.overdue@krishi.com", "Pass@123");
+
+        UUID farmId = createFarm("Valley View Farm", token);
+        UUID cycleId = createCropCycleAndStart("Autumn 2026", farmId, token);
+        UUID plantingId = createCropPlanting(cycleId, "Corn", token);
+
+        TaskCreateRequest taskRequest = new TaskCreateRequest();
+        taskRequest.setCropPlantingId(plantingId);
+        taskRequest.setTaskType(TaskType.FERTILIZER_APPLICATION);
+        taskRequest.setTitle("Urea Top Dressing");
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/tasks")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        UUID taskId = UUID.fromString(objectMapper.readTree(createResult.getResponse().getContentAsString()).get("data").get("id").asText());
+
+        // Simulate OVERDUE status in repository
+        com.krishi.backend.task.entity.Task task = taskRepository.findById(taskId).orElseThrow();
+        task.setStatus(TaskStatus.OVERDUE);
+        taskRepository.save(task);
+
+        // 1. OVERDUE -> START (Permitted)
+        MvcResult startResult = mockMvc.perform(post("/api/v1/tasks/" + taskId + "/start")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode startNode = objectMapper.readTree(startResult.getResponse().getContentAsString()).get("data");
+        assertEquals("IN_PROGRESS", startNode.get("status").asText());
+
+        // Set back to OVERDUE to test SKIP with reason
+        task = taskRepository.findById(taskId).orElseThrow();
+        task.setStatus(TaskStatus.OVERDUE);
+        taskRepository.save(task);
+
+        // 2. OVERDUE -> SKIP with reason (Permitted)
+        MvcResult skipResult = mockMvc.perform(post("/api/v1/tasks/" + taskId + "/skip")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Soil Moisture Adequate\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode skipNode = objectMapper.readTree(skipResult.getResponse().getContentAsString()).get("data");
+        assertEquals("SKIPPED", skipNode.get("status").asText());
+        assertEquals("Soil Moisture Adequate", skipNode.get("skipReason").asText());
+    }
 }

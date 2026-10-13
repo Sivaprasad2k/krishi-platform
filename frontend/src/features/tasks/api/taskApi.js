@@ -72,11 +72,13 @@ export const cancelTask = async (id) => {
 };
 
 /**
- * Skip a task.
+ * Skip a task with an optional reason.
  * @param {string} id
+ * @param {string} [reason]
  */
-export const skipTask = async (id) => {
-  const response = await apiClient.post(`/tasks/${id}/skip`);
+export const skipTask = async (id, reason) => {
+  const payload = reason ? { reason: reason.trim() } : {};
+  const response = await apiClient.post(`/tasks/${id}/skip`, payload);
   return response.data;
 };
 

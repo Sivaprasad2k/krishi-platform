@@ -328,4 +328,55 @@ public class TreatmentIntegrationTest {
         assertEquals(1, listResponseNode.get("data").size());
         assertEquals("Mancozeb Spray Application", listResponseNode.get("data").get(0).get("treatmentName").asText());
     }
+
+    @Test
+    void testGetAllTreatmentsConsolidatedEndpoint() throws Exception {
+        String tokenA = registerAndLogin("Farmer Alpha", "9998887771", "alpha.treat@krishi.com", "Pass@123");
+        String tokenB = registerAndLogin("Farmer Beta", "9998887772", "beta.treat@krishi.com", "Pass@123");
+
+        UUID farmId = createFarm("Green Valley Farm", tokenA);
+        UUID cycleId = createCropCycleAndStart("Summer 2026", farmId, tokenA);
+        UUID plantingId = createCropPlanting(cycleId, tokenA);
+        UUID incidentId = reportDiseaseIncident(plantingId, tokenA);
+
+        TreatmentPlanRequest planRequest = new TreatmentPlanRequest();
+        planRequest.setDiseaseIncidentId(incidentId);
+        planRequest.setTreatmentName("Copper Oxychloride Spray");
+        planRequest.setDescription("Apply 3g/L spray in early morning");
+        planRequest.setRecommendedDosage("3g per Liter");
+        planRequest.setApplicationMethod("Foliar Spray");
+
+        MvcResult createRes = mockMvc.perform(post("/api/v1/treatments")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(planRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+        UUID treatmentId = UUID.fromString(objectMapper.readTree(createRes.getResponse().getContentAsString()).get("data").get("id").asText());
+
+        // 1. Farmer A calls GET /api/v1/treatments -> returns 1 enriched treatment
+        MvcResult getResultA = mockMvc.perform(get("/api/v1/treatments")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode arrayA = objectMapper.readTree(getResultA.getResponse().getContentAsString()).get("data");
+        assertEquals(1, arrayA.size());
+        JsonNode itemA = arrayA.get(0);
+        assertEquals(treatmentId.toString(), itemA.get("id").asText());
+        assertEquals("Copper Oxychloride Spray", itemA.get("treatmentName").asText());
+        assertEquals("Late Blight", itemA.get("diseaseName").asText());
+        assertEquals("Tomato", itemA.get("cropName").asText());
+        assertEquals("Green Valley Farm", itemA.get("farmName").asText());
+        assertEquals(farmId.toString(), itemA.get("farmId").asText());
+
+        // 2. Farmer B calls GET /api/v1/treatments -> returns empty list (farmer isolation)
+        MvcResult getResultB = mockMvc.perform(get("/api/v1/treatments")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode arrayB = objectMapper.readTree(getResultB.getResponse().getContentAsString()).get("data");
+        assertEquals(0, arrayB.size());
+    }
 }

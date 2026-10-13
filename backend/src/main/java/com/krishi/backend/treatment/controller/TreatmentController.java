@@ -105,4 +105,20 @@ public class TreatmentController {
                         .build()
         );
     }
+
+    @GetMapping("/api/v1/treatments")
+    public ResponseEntity<ApiResponse<List<TreatmentResponse>>> getAllTreatments(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<TreatmentResponse> response = treatmentService.getAllTreatmentsForUser(userDetails);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<TreatmentResponse>>builder()
+                        .success(true)
+                        .message("Treatments listed successfully for farmer")
+                        .data(response)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
 }

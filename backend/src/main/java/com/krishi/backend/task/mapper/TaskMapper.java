@@ -18,9 +18,26 @@ public class TaskMapper {
             return null;
         }
 
+        String cropName = null;
+        String cropVariety = null;
+        java.util.UUID farmId = null;
+        String farmName = null;
+        if (task.getCropPlanting() != null) {
+            cropName = task.getCropPlanting().getCropName();
+            cropVariety = task.getCropPlanting().getCropVariety();
+            if (task.getCropPlanting().getCropCycle() != null && task.getCropPlanting().getCropCycle().getFarm() != null) {
+                farmId = task.getCropPlanting().getCropCycle().getFarm().getId();
+                farmName = task.getCropPlanting().getCropCycle().getFarm().getName();
+            }
+        }
+
         return TaskResponse.builder()
                 .id(task.getId())
                 .cropPlantingId(task.getCropPlanting() != null ? task.getCropPlanting().getId() : null)
+                .cropName(cropName)
+                .cropVariety(cropVariety)
+                .farmId(farmId)
+                .farmName(farmName)
                 .treatmentId(task.getTreatment() != null ? task.getTreatment().getId() : null)
                 .cultivationPlanId(task.getCultivationPlan() != null ? task.getCultivationPlan().getId() : null)
                 .templateTaskId(task.getTemplateTask() != null ? task.getTemplateTask().getId() : null)
@@ -31,6 +48,7 @@ public class TaskMapper {
                 .dueDate(task.getDueDate())
                 .completedAt(task.getCompletedAt())
                 .status(task.getStatus())
+                .skipReason(task.getSkipReason())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .build();

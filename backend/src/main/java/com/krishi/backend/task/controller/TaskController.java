@@ -108,9 +108,10 @@ public class TaskController {
     @PostMapping("/api/v1/tasks/{id}/skip")
     public ResponseEntity<ApiResponse<TaskResponse>> skipTask(
             @PathVariable UUID id,
+            @Valid @RequestBody(required = false) com.krishi.backend.task.dto.TaskSkipRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        TaskResponse response = taskService.skipTask(id, userDetails);
+        TaskResponse response = taskService.skipTask(id, request, userDetails);
 
         return ResponseEntity.ok(
                 ApiResponse.<TaskResponse>builder()

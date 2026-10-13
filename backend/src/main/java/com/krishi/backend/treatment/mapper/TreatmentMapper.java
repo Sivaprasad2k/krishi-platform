@@ -18,9 +18,36 @@ public class TreatmentMapper {
             return null;
         }
 
+        String diseaseName = null;
+        java.util.UUID cropPlantingId = null;
+        String cropName = null;
+        String cropVariety = null;
+        java.util.UUID farmId = null;
+        String farmName = null;
+
+        if (treatment.getDiseaseIncident() != null) {
+            diseaseName = treatment.getDiseaseIncident().getDiseaseName();
+            if (treatment.getDiseaseIncident().getCropPlanting() != null) {
+                com.krishi.backend.cropplanting.entity.CropPlanting cp = treatment.getDiseaseIncident().getCropPlanting();
+                cropPlantingId = cp.getId();
+                cropName = cp.getCropName();
+                cropVariety = cp.getCropVariety();
+                if (cp.getCropCycle() != null && cp.getCropCycle().getFarm() != null) {
+                    farmId = cp.getCropCycle().getFarm().getId();
+                    farmName = cp.getCropCycle().getFarm().getName();
+                }
+            }
+        }
+
         return TreatmentResponse.builder()
                 .id(treatment.getId())
-                .diseaseIncidentId(treatment.getDiseaseIncident().getId())
+                .diseaseIncidentId(treatment.getDiseaseIncident() != null ? treatment.getDiseaseIncident().getId() : null)
+                .diseaseName(diseaseName)
+                .cropPlantingId(cropPlantingId)
+                .cropName(cropName)
+                .cropVariety(cropVariety)
+                .farmId(farmId)
+                .farmName(farmName)
                 .treatmentName(treatment.getTreatmentName())
                 .description(treatment.getDescription())
                 .recommendedDosage(treatment.getRecommendedDosage())

@@ -203,7 +203,7 @@ public class TaskService {
      * Skips the Task, moving status from PENDING, IN_PROGRESS, or OVERDUE to SKIPPED.
      */
     @Transactional
-    public TaskResponse skipTask(UUID id, CustomUserDetails userDetails) {
+    public TaskResponse skipTask(UUID id, com.krishi.backend.task.dto.TaskSkipRequest request, CustomUserDetails userDetails) {
         validateFarmerRole(userDetails);
 
         Task task = taskRepository.findById(id)
@@ -221,8 +221,17 @@ public class TaskService {
         task.setUpdatedAt(now);
         task.setUpdatedBy(userDetails.getUserId());
 
+        if (request != null && request.getReason() != null && !request.getReason().trim().isEmpty()) {
+            task.setSkipReason(request.getReason().trim());
+        }
+
         Task updated = taskRepository.save(task);
         return taskMapper.toResponse(updated);
+    }
+
+    @Transactional
+    public TaskResponse skipTask(UUID id, CustomUserDetails userDetails) {
+        return skipTask(id, null, userDetails);
     }
 
     /**

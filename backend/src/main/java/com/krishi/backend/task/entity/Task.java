@@ -57,6 +57,9 @@ public class Task {
     @Column(nullable = false)
     private TaskStatus status;
 
+    @Column(name = "skip_reason")
+    private String skipReason;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

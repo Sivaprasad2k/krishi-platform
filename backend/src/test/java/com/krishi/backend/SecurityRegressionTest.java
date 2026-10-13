@@ -43,6 +43,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -147,6 +148,23 @@ public class SecurityRegressionTest {
         Map<String, Object> responseMap = objectMapper.readValue(responseString, Map.class);
         Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
         return (String) data.get("accessToken");
+    }
+
+    @Test
+    void currentUserEndpointLoadsLazyRoleWithOpenSessionInViewDisabled() throws Exception {
+        String suffix = UUID.randomUUID().toString().replace("-", "");
+        String randomDigits = String.format("%09d", java.util.concurrent.ThreadLocalRandom.current().nextLong(1_000_000_000L));
+        String password = UUID.randomUUID() + "Aa1@";
+        String token = registerAndLogin(
+                "OSIV Regression Farmer",
+                "9" + randomDigits,
+                "osiv-" + suffix + "@example.com",
+                password);
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.role").value("FARMER"));
     }
 
     @Test
@@ -267,6 +285,11 @@ public class SecurityRegressionTest {
 
         // F. Task Complete
         mockMvc.perform(post("/api/v1/tasks/" + taskIdA + "/complete")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isForbidden());
+
+        // G. Crop Planting Workspace GET IDOR check
+        mockMvc.perform(get("/api/v1/crop-plantings/" + plantingIdA + "/workspace")
                         .header("Authorization", "Bearer " + tokenB))
                 .andExpect(status().isForbidden());
 

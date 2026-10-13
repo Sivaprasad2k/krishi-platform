@@ -30,6 +30,16 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     List<Task> findByTreatmentId(UUID treatmentId);
 
     /**
+     * Find all tasks associated with a specific cultivation plan.
+     */
+    List<Task> findByCultivationPlanId(UUID cultivationPlanId);
+
+    /**
+     * Find all tasks for a planting and cultivation plan.
+     */
+    List<Task> findByCropPlantingIdAndCultivationPlanId(UUID cropPlantingId, UUID cultivationPlanId);
+
+    /**
      * Find all tasks belonging to any crop planting on farms owned by the given user.
      *
      * @param ownerId the farmer user ID

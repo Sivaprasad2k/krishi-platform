@@ -196,4 +196,82 @@ public class FarmModuleIntegrationTest {
         assertEquals(1, dataArray.size());
         assertEquals("Alice Valley Updated", dataArray.get(0).get("name").asText());
     }
+
+    @Test
+    void testStructuredFarmLocationFieldsAndCoordinateValidation() throws Exception {
+        String token = registerAndLogin("Farmer Geo", "9777777771", "geo@krishi.com", "Pass@123");
+
+        // 1. Create farm with structured location
+        FarmCreateRequest validReq = new FarmCreateRequest();
+        validReq.setName("Green Valley Farm");
+        validReq.setSizeHectares(5.0);
+        validReq.setLocation("Madurai, Tamil Nadu");
+        validReq.setState("Tamil Nadu");
+        validReq.setDistrict("Madurai");
+        validReq.setLatitude(9.9252);
+        validReq.setLongitude(78.1198);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/farms")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).get("data");
+        UUID farmId = UUID.fromString(data.get("id").asText());
+        assertEquals("Tamil Nadu", data.get("state").asText());
+        assertEquals("Madurai", data.get("district").asText());
+        assertEquals(9.9252, data.get("latitude").asDouble(), 0.0001);
+        assertEquals(78.1198, data.get("longitude").asDouble(), 0.0001);
+        assertEquals("Madurai, Tamil Nadu", data.get("location").asText());
+
+        // 2. Reject invalid latitude (> 90.0) -> 400 Bad Request
+        FarmCreateRequest invalidLatReq = new FarmCreateRequest();
+        invalidLatReq.setName("Invalid Latitude Farm");
+        invalidLatReq.setSizeHectares(2.0);
+        invalidLatReq.setLocation("Test Loc");
+        invalidLatReq.setLatitude(95.0);
+
+        mockMvc.perform(post("/api/v1/farms")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidLatReq)))
+                .andExpect(status().isBadRequest());
+
+        // 3. Reject invalid longitude (> 180.0) -> 400 Bad Request
+        FarmCreateRequest invalidLonReq = new FarmCreateRequest();
+        invalidLonReq.setName("Invalid Longitude Farm");
+        invalidLonReq.setSizeHectares(2.0);
+        invalidLonReq.setLocation("Test Loc");
+        invalidLonReq.setLongitude(185.0);
+
+        mockMvc.perform(post("/api/v1/farms")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidLonReq)))
+                .andExpect(status().isBadRequest());
+
+        // 4. Update structured location
+        FarmUpdateRequest updateReq = new FarmUpdateRequest();
+        updateReq.setName("Green Valley Farm Premium");
+        updateReq.setSizeHectares(6.0);
+        updateReq.setLocation("Theni, Tamil Nadu");
+        updateReq.setState("Tamil Nadu");
+        updateReq.setDistrict("Theni");
+        updateReq.setLatitude(10.0104);
+        updateReq.setLongitude(77.4768);
+        updateReq.setStatus(FarmStatus.ACTIVE);
+
+        MvcResult updateResult = mockMvc.perform(put("/api/v1/farms/" + farmId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode updatedData = objectMapper.readTree(updateResult.getResponse().getContentAsString()).get("data");
+        assertEquals("Theni", updatedData.get("district").asText());
+        assertEquals(10.0104, updatedData.get("latitude").asDouble(), 0.0001);
+    }
 }

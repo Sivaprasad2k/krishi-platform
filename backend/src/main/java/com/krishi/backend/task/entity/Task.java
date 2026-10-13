@@ -25,6 +25,14 @@ public class Task {
     @JoinColumn(name = "treatment_id", nullable = true)
     private Treatment treatment;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cultivation_plan_id", nullable = true)
+    private com.krishi.backend.cultivation.entity.CultivationPlan cultivationPlan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_task_id", nullable = true)
+    private com.krishi.backend.cultivation.entity.CultivationTemplateTask templateTask;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "task_type", nullable = false)
     private TaskType taskType;

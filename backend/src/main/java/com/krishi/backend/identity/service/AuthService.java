@@ -127,6 +127,7 @@ public class AuthService {
                 .tokenType("Bearer")
                 .build();
     }
+    @Transactional(readOnly = true)
     public UserResponse getCurrentUser(
             CustomUserDetails userDetails) {
 

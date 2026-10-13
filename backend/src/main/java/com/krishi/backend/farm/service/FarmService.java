@@ -51,6 +51,10 @@ public class FarmService {
         farm.setName(request.getName());
         farm.setSizeHectares(request.getSizeHectares());
         farm.setLocation(request.getLocation());
+        farm.setState(request.getState());
+        farm.setDistrict(request.getDistrict());
+        farm.setLatitude(request.getLatitude());
+        farm.setLongitude(request.getLongitude());
         farm.setOwner(owner);
         farm.setStatus(FarmStatus.ACTIVE);
         farm.setCreatedAt(LocalDateTime.now());
@@ -128,6 +132,10 @@ public class FarmService {
         farm.setName(request.getName());
         farm.setSizeHectares(request.getSizeHectares());
         farm.setLocation(request.getLocation());
+        farm.setState(request.getState());
+        farm.setDistrict(request.getDistrict());
+        farm.setLatitude(request.getLatitude());
+        farm.setLongitude(request.getLongitude());
         farm.setStatus(request.getStatus());
         farm.setUpdatedAt(LocalDateTime.now());
         farm.setUpdatedBy(userDetails.getUserId());

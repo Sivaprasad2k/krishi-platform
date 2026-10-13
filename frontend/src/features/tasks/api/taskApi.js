@@ -70,3 +70,22 @@ export const cancelTask = async (id) => {
   const response = await apiClient.post(`/tasks/${id}/cancel`);
   return response.data;
 };
+
+/**
+ * Skip a task.
+ * @param {string} id
+ */
+export const skipTask = async (id) => {
+  const response = await apiClient.post(`/tasks/${id}/skip`);
+  return response.data;
+};
+
+/**
+ * Reschedule a task to a new due date.
+ * @param {string} id
+ * @param {string} dueDate (YYYY-MM-DD)
+ */
+export const rescheduleTask = async (id, dueDate) => {
+  const response = await apiClient.post(`/tasks/${id}/reschedule`, { dueDate });
+  return response.data;
+};

@@ -13,8 +13,24 @@ import com.krishi.backend.cropplanting.event.CropPlantingCreatedEvent;
 import com.krishi.backend.cropplanting.event.CropPlantingUpdatedEvent;
 import com.krishi.backend.cropplanting.mapper.CropPlantingMapper;
 import com.krishi.backend.cropplanting.repository.CropPlantingRepository;
+import com.krishi.backend.cropcycle.mapper.CropCycleMapper;
+import com.krishi.backend.cropplanting.dto.CropWorkspaceResponse;
+import com.krishi.backend.diseaseincident.dto.DiseaseIncidentResponse;
+import com.krishi.backend.diseaseincident.entity.DiseaseIncident;
+import com.krishi.backend.diseaseincident.entity.DiseaseIncidentStatus;
+import com.krishi.backend.diseaseincident.mapper.DiseaseIncidentMapper;
+import com.krishi.backend.diseaseincident.repository.DiseaseIncidentRepository;
+import com.krishi.backend.farm.entity.Farm;
+import com.krishi.backend.farm.mapper.FarmMapper;
+import com.krishi.backend.task.entity.Task;
+import com.krishi.backend.task.mapper.TaskMapper;
+import com.krishi.backend.task.repository.TaskRepository;
+import com.krishi.backend.treatment.entity.Treatment;
+import com.krishi.backend.treatment.mapper.TreatmentMapper;
+import com.krishi.backend.treatment.repository.TreatmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +46,15 @@ public class CropPlantingService {
     private final CropPlantingRepository cropPlantingRepository;
     private final CropCycleRepository cropCycleRepository;
     private final CropPlantingMapper cropPlantingMapper;
+    private final CropCycleMapper cropCycleMapper;
+    private final FarmMapper farmMapper;
+    private final TaskRepository taskRepository;
+    private final TaskMapper taskMapper;
+    private final DiseaseIncidentRepository diseaseIncidentRepository;
+    private final DiseaseIncidentMapper diseaseIncidentMapper;
+    private final TreatmentRepository treatmentRepository;
+    private final TreatmentMapper treatmentMapper;
+    private final com.krishi.backend.cultivation.service.CultivationPlanService cultivationPlanService;
     private final DomainEventPublisher domainEventPublisher;
 
     /**
@@ -67,6 +92,10 @@ public class CropPlantingService {
         planting.setCreatedBy(userDetails.getUserId());
 
         CropPlanting saved = cropPlantingRepository.save(planting);
+
+        if (request.getTemplateId() != null) {
+            cultivationPlanService.generateCultivationPlan(saved.getId(), request.getTemplateId(), userDetails);
+        }
 
         // Publish CropPlantingCreatedEvent
         CropPlantingCreatedEvent event = CropPlantingCreatedEvent.builder()
@@ -163,6 +192,53 @@ public class CropPlantingService {
         return plantings.stream()
                 .map(cropPlantingMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves unified crop workspace details containing crop, season, farm,
+     * tasks, disease incidents, and treatments in a single call.
+     * Enforces role and ownership verification.
+     */
+    @PreAuthorize("hasRole('FARMER')")
+    @Transactional(readOnly = true)
+    public CropWorkspaceResponse getCropWorkspace(UUID plantingId, CustomUserDetails userDetails) {
+        validateFarmerRole(userDetails);
+
+        CropPlanting planting = cropPlantingRepository.findById(plantingId)
+                .orElseThrow(() -> new IllegalArgumentException("Crop planting not found with id: " + plantingId));
+
+        validateCycleOwnership(planting.getCropCycle(), userDetails.getUserId());
+
+        CropCycle cycle = planting.getCropCycle();
+        Farm farm = cycle.getFarm();
+
+        List<Task> tasks = taskRepository.findByCropPlantingId(plantingId);
+        List<DiseaseIncident> incidents = diseaseIncidentRepository.findByCropPlantingId(plantingId);
+        List<Treatment> treatments = treatmentRepository.findByDiseaseIncidentCropPlantingId(plantingId);
+
+        List<DiseaseIncidentResponse> incidentResponses = incidents.stream()
+                .map(diseaseIncidentMapper::toResponse)
+                .collect(Collectors.toList());
+
+        List<DiseaseIncidentResponse> openIncidentResponses = incidentResponses.stream()
+                .filter(inc -> inc.getStatus() != DiseaseIncidentStatus.CLOSED)
+                .collect(Collectors.toList());
+
+        com.krishi.backend.cultivation.dto.CultivationPlanResponse planResponse =
+                cultivationPlanService.getActivePlan(plantingId, userDetails);
+
+        return CropWorkspaceResponse.builder()
+                .crop(cropPlantingMapper.toResponse(planting))
+                .season(cropCycleMapper.toResponse(cycle))
+                .farm(farmMapper.toResponse(farm))
+                .farmName(farm.getName())
+                .farmId(farm.getId())
+                .tasks(tasks.stream().map(taskMapper::toResponse).collect(Collectors.toList()))
+                .incidents(incidentResponses)
+                .openIncidents(openIncidentResponses)
+                .treatments(treatments.stream().map(treatmentMapper::toResponse).collect(Collectors.toList()))
+                .cultivationPlan(planResponse)
+                .build();
     }
 
     /**

@@ -4,5 +4,6 @@ public enum TaskSource {
     MANUAL,
     TREATMENT,
     AUTOMATION,
-    SYSTEM
+    SYSTEM,
+    PLAN
 }

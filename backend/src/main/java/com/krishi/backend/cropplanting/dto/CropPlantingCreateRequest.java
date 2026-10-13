@@ -25,4 +25,5 @@ public class CropPlantingCreateRequest {
     private LocalDateTime plantingDate;
 
     private LocalDateTime expectedHarvestDate;
+    private UUID templateId;
 }

@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, BookOpen, Sparkles, Layers } from 'lucide-react';
 import CropTypeSelector from './CropTypeSelector';
 import ChoiceChip from '../../../shared/components/ChoiceChip';
-
-const VARIETY_SUGGESTIONS = {
-  Paddy: ['Ponni', 'Sona Masoori', 'IR20', 'CR1009', 'ADT 37'],
-  Banana: ['Grand Naine', 'Robusta', 'Nendran', 'Poovan', 'Red Banana'],
-  Coconut: ['West Coast Tall', 'Chowghat Dwarf', 'Malayan Yellow', 'Local'],
-  Tomato: ['PKM-1', 'Arka Rakshak', 'Vaishnavi', 'Local Hybrid'],
-};
+import { fetchPublishedTemplates } from '../api/cultivationPlanApi';
 
 export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [cropType, setCropType] = useState(initialValues.cropName || '');
   const [customCropName, setCustomCropName] = useState(
-    initialValues.cropName && !['Paddy', 'Banana', 'Coconut', 'Tomato'].includes(initialValues.cropName)
+    initialValues.cropName && !['Paddy', 'Wheat', 'Banana', 'Coconut', 'Tomato'].includes(initialValues.cropName)
       ? initialValues.cropName
       : ''
   );
@@ -38,6 +32,59 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
       : ''
   );
 
+  // Dynamic Knowledge Catalog State
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialValues.templateId || '');
+
+  // Load published templates from agricultural catalog
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const list = await fetchPublishedTemplates();
+        setTemplates(list);
+      } catch (err) {
+        console.error('Failed to load published templates:', err);
+      }
+    };
+    loadTemplates();
+  }, []);
+
+  // Find templates matching the chosen crop
+  const effectiveCropName = cropType === 'Other' ? customCropName.trim() : cropType;
+  const matchingTemplates = templates.filter((tpl) => {
+    if (!effectiveCropName) return false;
+    const eff = effectiveCropName.toLowerCase();
+    const tName = tpl.cropName.toLowerCase();
+    return (
+      tName.includes(eff) ||
+      eff.includes(tName) ||
+      (eff.includes('paddy') && tName.includes('rice')) ||
+      (eff.includes('rice') && tName.includes('paddy'))
+    );
+  });
+
+  // Automatically select best template when crop changes
+  useEffect(() => {
+    if (matchingTemplates.length > 0) {
+      if (!selectedTemplateId || !matchingTemplates.some(t => t.id === selectedTemplateId)) {
+        setSelectedTemplateId(matchingTemplates[0].id);
+      }
+    } else {
+      setSelectedTemplateId('');
+    }
+  }, [cropType, customCropName, templates]);
+
+  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
+
+  // Derive dynamic variety suggestions from the chosen template (not hardcoded)
+  const currentVarietySuggestions = React.useMemo(() => {
+    if (!selectedTemplate?.variety) return [];
+    return selectedTemplate.variety
+      .split(/[,/]/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }, [selectedTemplate]);
+
   useEffect(() => {
     if (unknownVariety) {
       setCropVariety('Local/Traditional');
@@ -46,26 +93,15 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
     }
   }, [unknownVariety]);
 
+  // Dynamically calculate expected harvest date from agronomic template duration (not hardcoded)
   useEffect(() => {
-    if (!initialValues.expectedHarvestDate) {
+    if (!initialValues.expectedHarvestDate && selectedTemplate?.durationDays) {
       const baseDate = plantingDate ? new Date(plantingDate) : new Date();
-      if (cropType === 'Paddy') {
-        const d = new Date(baseDate);
-        d.setDate(d.getDate() + 120);
-        setExpectedHarvestDate(d.toISOString().split('T')[0]);
-      } else if (cropType === 'Banana') {
-        const d = new Date(baseDate);
-        d.setDate(d.getDate() + 300);
-        setExpectedHarvestDate(d.toISOString().split('T')[0]);
-      } else if (cropType === 'Tomato') {
-        const d = new Date(baseDate);
-        d.setDate(d.getDate() + 90);
-        setExpectedHarvestDate(d.toISOString().split('T')[0]);
-      } else {
-        setExpectedHarvestDate('');
-      }
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + selectedTemplate.durationDays);
+      setExpectedHarvestDate(d.toISOString().split('T')[0]);
     }
-  }, [cropType, plantingDate]);
+  }, [selectedTemplate, plantingDate]);
 
   const handleNext = () => {
     if (step === 1 && !cropType) return;
@@ -90,11 +126,11 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
       cropVariety: cropVariety.trim(),
       plantingDate: pDate,
       expectedHarvestDate: ehDate,
+      templateId: selectedTemplateId || undefined
     });
   };
 
   const finalCropNameDisplay = cropType === 'Other' ? customCropName : cropType;
-  const currentVarietySuggestions = VARIETY_SUGGESTIONS[cropType] || [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -146,12 +182,56 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
                 <input
                   type="text"
                   required
-                  placeholder={t('crops.wizard.step1.customPlaceholder', 'e.g. Mango, Carrot')}
+                  placeholder={t('crops.wizard.step1.customPlaceholder', 'e.g. Mustard, Cotton')}
                   value={customCropName}
                   onChange={(e) => setCustomCropName(e.target.value)}
                   style={{ minHeight: '48px' }}
                   className="w-full px-4 rounded-2xl border border-gray-250 font-bold focus:outline-hidden focus:border-emerald-500 text-base"
                 />
+              </div>
+            )}
+
+            {/* Cultivation Protocol Selection if matching templates exist */}
+            {matchingTemplates.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <label className="text-xs font-black text-emerald-800 uppercase tracking-wider block flex items-center space-x-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-600 inline" />
+                  <span>{t('crops.wizard.step1.templateAvailable', 'Agricultural Cultivation Plan Available')}</span>
+                </label>
+                <div className="space-y-2">
+                  {matchingTemplates.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      onClick={() => setSelectedTemplateId(tpl.id)}
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                        selectedTemplateId === tpl.id
+                          ? 'border-emerald-600 bg-emerald-50/70 shadow-xs'
+                          : 'border-gray-200 bg-white hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-black text-gray-850">{tpl.cropName}</span>
+                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                            {tpl.sourceVersion}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-gray-500">
+                          {tpl.recommendationSource} &bull; {tpl.durationDays} days
+                        </p>
+                      </div>
+                      <div
+                        className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                          selectedTemplateId === tpl.id
+                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {selectedTemplateId === tpl.id && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -177,18 +257,18 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
                 type="text"
                 required
                 disabled={unknownVariety}
-                placeholder={t('crops.wizard.step2.placeholder', 'e.g. Ponni, Basmati, Grand Naine')}
+                placeholder={t('crops.wizard.step2.placeholder', 'e.g. Samba Masoori, Arka Rakshak, HD-2967')}
                 value={cropVariety}
                 onChange={(e) => setCropVariety(e.target.value)}
                 style={{ minHeight: '48px' }}
                 className="w-full px-4 rounded-2xl border border-gray-250 font-bold focus:outline-hidden focus:border-emerald-500 disabled:bg-gray-50 disabled:text-gray-400 text-base text-gray-850"
               />
 
-              {/* Variety Suggestion Chips */}
+              {/* Dynamic Variety Suggestion Chips from Agricultural Catalog */}
               {currentVarietySuggestions.length > 0 && !unknownVariety && (
                 <div className="space-y-1.5 pt-1">
                   <span className="text-xs font-bold text-gray-400">
-                    {t('crops.wizard.step2.suggestionsLabel', 'Common Varieties:')}
+                    {t('crops.wizard.step2.suggestionsLabel', 'Catalog Recommended Varieties:')}
                   </span>
                   <div className="flex flex-wrap gap-2">
                     {currentVarietySuggestions.map((v) => (
@@ -272,17 +352,19 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
               />
             </div>
 
-            {['Paddy', 'Banana', 'Tomato'].includes(cropType) && (
-              <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 flex items-start space-x-3 text-xs font-bold text-amber-800">
-                <HelpCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            {selectedTemplate && (
+              <div className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 flex items-start space-x-3 text-xs font-bold text-emerald-900">
+                <Sparkles className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
                 <div className="space-y-1">
                   <span>
-                    {cropType === 'Paddy' && t('crops.wizard.step4.suggestPaddy', 'Suggested Paddy cycle is ~120 days from planting.')}
-                    {cropType === 'Banana' && t('crops.wizard.step4.suggestBanana', 'Suggested Banana cycle is ~300 days from planting.')}
-                    {cropType === 'Tomato' && t('crops.wizard.step4.suggestTomato', 'Suggested Tomato cycle is ~90 days from planting.')}
+                    {t('crops.wizard.step4.suggestTemplate', 'Cultivation cycle: ~{{days}} days based on {{source}} ({{version}}).', {
+                      days: selectedTemplate.durationDays,
+                      source: selectedTemplate.recommendationSource,
+                      version: selectedTemplate.sourceVersion
+                    })}
                   </span>
-                  <span className="block font-semibold text-amber-700">
-                    {t('crops.wizard.step4.disclaimer', 'Timeline suggestions are estimate frameworks only.')}
+                  <span className="block font-semibold text-emerald-700">
+                    {t('crops.wizard.step4.autoPlanNotice', 'Automated field activities and stage tracking will be scheduled.')}
                   </span>
                 </div>
               </div>
@@ -317,12 +399,23 @@ export const CropFormWizard = ({ onSubmit, isSubmitting, initialValues = {} }) =
                   {plantingDate ? new Date(plantingDate).toLocaleDateString() : ''}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between border-b border-gray-200 pb-2">
                 <span className="font-bold text-gray-400 uppercase text-xs tracking-wider">{t('crops.wizard.review.expectedHarvest', 'Expected Harvest')}:</span>
                 <span className="font-black text-gray-850">
                   {expectedHarvestDate ? new Date(expectedHarvestDate).toLocaleDateString() : t('crops.wizard.review.none', 'Not specified')}
                 </span>
               </div>
+              {selectedTemplate && (
+                <div className="flex justify-between items-center pt-1 text-emerald-900">
+                  <span className="font-bold text-emerald-700 uppercase text-xs tracking-wider flex items-center space-x-1">
+                    <BookOpen className="h-3.5 w-3.5 inline mr-1" />
+                    <span>{t('crops.wizard.review.plan', 'Cultivation Plan')}:</span>
+                  </span>
+                  <span className="font-black text-xs text-right">
+                    {selectedTemplate.cropName} &bull; {selectedTemplate.sourceVersion}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -5,10 +5,11 @@ export const CropTypeSelector = ({ value, onChange }) => {
   const { t } = useTranslation();
 
   const options = [
-    { id: 'Paddy', icon: '🌾', label: t('crops.types.paddy', 'Paddy') },
+    { id: 'Paddy', icon: '🌾', label: t('crops.types.paddy', 'Paddy / Rice') },
+    { id: 'Wheat', icon: '🌾', label: t('crops.types.wheat', 'Wheat') },
+    { id: 'Tomato', icon: '🍅', label: t('crops.types.tomato', 'Tomato') },
     { id: 'Banana', icon: '🌱', label: t('crops.types.banana', 'Banana') },
     { id: 'Coconut', icon: '🥥', label: t('crops.types.coconut', 'Coconut') },
-    { id: 'Tomato', icon: '🍅', label: t('crops.types.tomato', 'Tomato') },
     { id: 'Other', icon: '🌿', label: t('crops.types.other', 'Other') }
   ];
 

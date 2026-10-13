@@ -28,6 +28,12 @@ const STATUS_CONFIGS = {
     translationKey: 'tasks.status.CANCELLED',
     defaultText: 'Cancelled'
   },
+  SKIPPED: {
+    bg: 'bg-purple-50 text-purple-700 border-purple-200',
+    icon: XCircle,
+    translationKey: 'tasks.status.SKIPPED',
+    defaultText: 'Skipped'
+  },
   OVERDUE: {
     bg: 'bg-[#FEF2F2] text-[#DC2626] border-red-200 animate-pulse',
     icon: AlertTriangle,

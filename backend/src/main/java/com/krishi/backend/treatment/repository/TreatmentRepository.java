@@ -17,4 +17,12 @@ public interface TreatmentRepository extends JpaRepository<Treatment, UUID> {
      * @return a list of treatments
      */
     List<Treatment> findByDiseaseIncidentId(UUID diseaseIncidentId);
+
+    /**
+     * Find all treatments associated with all disease incidents for a specific crop planting.
+     *
+     * @param cropPlantingId the UUID of the crop planting
+     * @return a list of treatments
+     */
+    List<Treatment> findByDiseaseIncidentCropPlantingId(UUID cropPlantingId);
 }

@@ -92,7 +92,7 @@ public class TaskService {
     }
 
     /**
-     * Starts the Task, moving status from PENDING to IN_PROGRESS.
+     * Starts the Task, moving status from PENDING or OVERDUE to IN_PROGRESS.
      */
     @Transactional
     public TaskResponse startTask(UUID id, CustomUserDetails userDetails) {
@@ -103,7 +103,7 @@ public class TaskService {
 
         validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
-        if (task.getStatus() != TaskStatus.PENDING) {
+        if (task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.OVERDUE) {
             throw new IllegalStateException("Cannot start a task that is in status: " + task.getStatus());
         }
 
@@ -126,7 +126,7 @@ public class TaskService {
     }
 
     /**
-     * Completes the Task, moving status from IN_PROGRESS to COMPLETED.
+     * Completes the Task, moving status from IN_PROGRESS, PENDING, or OVERDUE to COMPLETED.
      */
     @Transactional
     public TaskResponse completeTask(UUID id, CustomUserDetails userDetails) {
@@ -137,7 +137,7 @@ public class TaskService {
 
         validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
-        if (task.getStatus() != TaskStatus.IN_PROGRESS) {
+        if (task.getStatus() != TaskStatus.IN_PROGRESS && task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.OVERDUE) {
             throw new IllegalStateException("Cannot complete a task that is in status: " + task.getStatus());
         }
 
@@ -163,7 +163,7 @@ public class TaskService {
     }
 
     /**
-     * Cancels the Task, moving status from PENDING to CANCELLED.
+     * Cancels the Task, moving status from PENDING, IN_PROGRESS, or OVERDUE to CANCELLED.
      */
     @Transactional
     public TaskResponse cancelTask(UUID id, CustomUserDetails userDetails) {
@@ -174,7 +174,7 @@ public class TaskService {
 
         validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
 
-        if (task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.IN_PROGRESS) {
+        if (task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.IN_PROGRESS && task.getStatus() != TaskStatus.OVERDUE) {
             throw new IllegalStateException("Cannot cancel a task that is in status: " + task.getStatus());
         }
 
@@ -196,6 +196,59 @@ public class TaskService {
                 .build();
         domainEventPublisher.publish(event);
 
+        return taskMapper.toResponse(updated);
+    }
+
+    /**
+     * Skips the Task, moving status from PENDING, IN_PROGRESS, or OVERDUE to SKIPPED.
+     */
+    @Transactional
+    public TaskResponse skipTask(UUID id, CustomUserDetails userDetails) {
+        validateFarmerRole(userDetails);
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
+
+        validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
+
+        if (task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.IN_PROGRESS && task.getStatus() != TaskStatus.OVERDUE) {
+            throw new IllegalStateException("Cannot skip a task that is in status: " + task.getStatus());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        task.setStatus(TaskStatus.SKIPPED);
+        task.setCompletedAt(now);
+        task.setUpdatedAt(now);
+        task.setUpdatedBy(userDetails.getUserId());
+
+        Task updated = taskRepository.save(task);
+        return taskMapper.toResponse(updated);
+    }
+
+    /**
+     * Reschedules the Task, updating due date. If currently OVERDUE and new date is in the future, reverts to PENDING.
+     */
+    @Transactional
+    public TaskResponse rescheduleTask(UUID id, com.krishi.backend.task.dto.TaskRescheduleRequest request, CustomUserDetails userDetails) {
+        validateFarmerRole(userDetails);
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
+
+        validateCropPlantingOwnership(task.getCropPlanting(), userDetails.getUserId());
+
+        if (task.getStatus() != TaskStatus.PENDING && task.getStatus() != TaskStatus.OVERDUE) {
+            throw new IllegalStateException("Cannot reschedule a task that is in status: " + task.getStatus());
+        }
+
+        task.setDueDate(request.getDueDate());
+        if (task.getStatus() == TaskStatus.OVERDUE && request.getDueDate() != null && request.getDueDate().isAfter(LocalDateTime.now())) {
+            task.setStatus(TaskStatus.PENDING);
+        }
+        task.setUpdatedAt(LocalDateTime.now());
+        task.setUpdatedBy(userDetails.getUserId());
+
+        Task updated = taskRepository.save(task);
         return taskMapper.toResponse(updated);
     }
 

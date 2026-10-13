@@ -14,10 +14,13 @@ import {
   Sun,
   Wrench,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  FastForward
 } from 'lucide-react';
-import { startTask, completeTask, cancelTask } from '../api/taskApi';
+import { startTask, completeTask, cancelTask, skipTask } from '../api/taskApi';
 import TaskDetailsModal from './TaskDetailsModal';
+import RescheduleTaskModal from './RescheduleTaskModal';
 import StatusBadge from '../../../shared/components/StatusBadge';
 
 const TYPE_ICONS = {
@@ -37,9 +40,10 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
   const { t } = useTranslation();
   const [loadingAction, setLoadingAction] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
 
   const isOverdue = () => {
-    if (!task.dueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED') return false;
+    if (!task.dueDate || task.status === 'COMPLETED' || task.status === 'CANCELLED' || task.status === 'SKIPPED') return false;
     const d = new Date(task.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -68,6 +72,11 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
         return {
           label: t('tasks.status.CANCELLED', 'Cancelled'),
           className: 'bg-gray-100 text-gray-700 border-gray-200'
+        };
+      case 'SKIPPED':
+        return {
+          label: t('tasks.status.SKIPPED', 'Skipped'),
+          className: 'bg-purple-50 text-purple-800 border-purple-200'
         };
       default:
         return {
@@ -98,6 +107,19 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
       if (onStatusChange) onStatusChange();
     } catch (err) {
       console.error('Failed to complete task:', err);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleSkip = async (e) => {
+    e.stopPropagation();
+    setLoadingAction('skip');
+    try {
+      await skipTask(task.id);
+      if (onStatusChange) onStatusChange();
+    } catch (err) {
+      console.error('Failed to skip task:', err);
     } finally {
       setLoadingAction(null);
     }
@@ -248,24 +270,46 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
           <StatusBadge status={overdue ? 'OVERDUE' : task.status} />
 
           {/* Action Workflow Controls */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             {task.status === 'PENDING' && (
               <>
                 <button
                   onClick={handleStart}
                   disabled={loadingAction === 'start'}
                   style={{ minHeight: '44px' }}
-                  className="rounded-xl bg-[#087A55] hover:bg-[#066747] active:scale-95 text-white font-extrabold px-4 text-xs flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
+                  className="rounded-xl bg-[#087A55] hover:bg-[#066747] active:scale-95 text-white font-extrabold px-3.5 text-xs flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   <Play className="h-3.5 w-3.5 fill-current" />
                   <span>{loadingAction === 'start' ? 'Updating...' : t('tasks.actions.start', 'Start Work')}</span>
                 </button>
 
                 <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsRescheduleOpen(true);
+                  }}
+                  style={{ minHeight: '44px' }}
+                  className="rounded-xl bg-[#F6FAF7] hover:bg-amber-50 text-[#57534e] hover:text-amber-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer"
+                  title={t('tasks.actions.reschedule', 'Reschedule Activity')}
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={handleSkip}
+                  disabled={loadingAction === 'skip'}
+                  style={{ minHeight: '44px' }}
+                  className="rounded-xl bg-[#F6FAF7] hover:bg-purple-50 text-[#57534e] hover:text-purple-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer disabled:opacity-50"
+                  title={t('tasks.actions.skip', 'Skip Activity')}
+                >
+                  <FastForward className="h-4 w-4" />
+                </button>
+
+                <button
                   onClick={handleCancel}
                   disabled={loadingAction === 'cancel'}
                   style={{ minHeight: '44px' }}
-                  className="rounded-xl bg-[#F6FAF7] hover:bg-red-50 text-[#57534e] hover:text-red-700 font-bold px-3 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer disabled:opacity-50"
+                  className="rounded-xl bg-[#F6FAF7] hover:bg-red-50 text-[#57534e] hover:text-red-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer disabled:opacity-50"
                   title={t('tasks.actions.cancel', 'Cancel Work')}
                 >
                   <XCircle className="h-4 w-4" />
@@ -279,16 +323,38 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
                   onClick={handleComplete}
                   disabled={loadingAction === 'complete'}
                   style={{ minHeight: '44px' }}
-                  className="rounded-xl bg-[#087A55] hover:bg-[#066747] active:scale-95 text-white font-extrabold px-4 text-xs flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
+                  className="rounded-xl bg-[#087A55] hover:bg-[#066747] active:scale-95 text-white font-extrabold px-3.5 text-xs flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   <CheckCircle className="h-4 w-4" />
                   <span>{loadingAction === 'complete' ? 'Updating...' : t('tasks.actions.complete', 'Complete Work')}</span>
                 </button>
 
                 <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsRescheduleOpen(true);
+                  }}
+                  style={{ minHeight: '44px' }}
+                  className="rounded-xl bg-[#F6FAF7] hover:bg-amber-50 text-[#57534e] hover:text-amber-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer"
+                  title={t('tasks.actions.reschedule', 'Reschedule Activity')}
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={handleSkip}
+                  disabled={loadingAction === 'skip'}
+                  style={{ minHeight: '44px' }}
+                  className="rounded-xl bg-[#F6FAF7] hover:bg-purple-50 text-[#57534e] hover:text-purple-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-[#D6E2D9] transition-all cursor-pointer disabled:opacity-50"
+                  title={t('tasks.actions.skip', 'Skip Activity')}
+                >
+                  <FastForward className="h-4 w-4" />
+                </button>
+
+                <button
                   onClick={handleCancel}
                   disabled={loadingAction === 'cancel'}
-                  style={{ minHeight: '38px' }}
+                  style={{ minHeight: '44px' }}
                   className="rounded-xl bg-gray-50 hover:bg-red-50 text-gray-500 hover:text-red-700 font-bold px-2.5 text-xs flex items-center space-x-1 border border-gray-200 transition-all cursor-pointer disabled:opacity-50"
                   title={t('tasks.actions.cancel', 'Cancel Work')}
                 >
@@ -297,7 +363,7 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
               </>
             )}
 
-            {(task.status === 'COMPLETED' || task.status === 'CANCELLED') && (
+            {(task.status === 'COMPLETED' || task.status === 'CANCELLED' || task.status === 'SKIPPED') && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -319,6 +385,14 @@ export const TaskCard = ({ task, onStatusChange, showTreatmentContext = true }) 
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
         onStatusChange={onStatusChange}
+      />
+
+      {/* Reschedule Task Modal */}
+      <RescheduleTaskModal
+        task={task}
+        isOpen={isRescheduleOpen}
+        onClose={() => setIsRescheduleOpen(false)}
+        onSuccess={onStatusChange}
       />
     </>
   );

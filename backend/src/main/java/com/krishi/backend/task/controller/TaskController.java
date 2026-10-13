@@ -105,6 +105,41 @@ public class TaskController {
         );
     }
 
+    @PostMapping("/api/v1/tasks/{id}/skip")
+    public ResponseEntity<ApiResponse<TaskResponse>> skipTask(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        TaskResponse response = taskService.skipTask(id, userDetails);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TaskResponse>builder()
+                        .success(true)
+                        .message("Task skipped successfully")
+                        .data(response)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @RequestMapping(value = "/api/v1/tasks/{id}/reschedule", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ResponseEntity<ApiResponse<TaskResponse>> rescheduleTask(
+            @PathVariable UUID id,
+            @Valid @RequestBody com.krishi.backend.task.dto.TaskRescheduleRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        TaskResponse response = taskService.rescheduleTask(id, request, userDetails);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TaskResponse>builder()
+                        .success(true)
+                        .message("Task rescheduled successfully")
+                        .data(response)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     @GetMapping("/api/v1/tasks/{id}")
     public ResponseEntity<ApiResponse<TaskResponse>> getTaskById(
             @PathVariable UUID id,

@@ -14,6 +14,10 @@ public class FarmResponse {
     private String name;
     private Double sizeHectares;
     private String location;
+    private String state;
+    private String district;
+    private Double latitude;
+    private Double longitude;
     private UUID ownerId;
     private FarmStatus status;
     private LocalDateTime createdAt;

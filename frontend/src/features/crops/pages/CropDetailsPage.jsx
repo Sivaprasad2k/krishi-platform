@@ -10,6 +10,7 @@ import ReportProblemModal from '../../diseaseIncident/components/ReportProblemMo
 import TreatmentCard from '../../treatment/components/TreatmentCard';
 import AddTreatmentModal from '../../treatment/components/AddTreatmentModal';
 import TaskCard from '../../tasks/components/TaskCard';
+import CultivationPlanCard from '../components/CultivationPlanCard';
 
 export const CropDetailsPage = () => {
   const { id } = useParams();
@@ -69,7 +70,7 @@ export const CropDetailsPage = () => {
   const { crop, season, farmName, openIncidents = [], incidents = openIncidents, treatments = [], tasks = [] } = data;
   const isEditable = season && season.status !== 'COMPLETED' && season.status !== 'CANCELLED';
 
-  const pendingTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+  const pendingTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS' || t.status === 'OVERDUE');
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-10">
@@ -135,6 +136,14 @@ export const CropDetailsPage = () => {
           </div>
         )}
       </div>
+
+      {/* 2. CULTIVATION PLAN */}
+      <CultivationPlanCard
+        plan={data.cultivationPlan}
+        plantingId={crop.id}
+        cropName={crop.cropName}
+        onPlanUpdated={loadWorkspaceDetails}
+      />
 
       {/* 2. CURRENT PROBLEMS */}
       <div className="bg-white p-6 rounded-2xl border border-[#C9DCCB] shadow-2xs space-y-4">

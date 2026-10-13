@@ -15,6 +15,8 @@ public class TaskResponse {
     private UUID id;
     private UUID cropPlantingId;
     private UUID treatmentId;
+    private UUID cultivationPlanId;
+    private UUID templateTaskId;
     private TaskType taskType;
     private TaskSource source;
     private String title;

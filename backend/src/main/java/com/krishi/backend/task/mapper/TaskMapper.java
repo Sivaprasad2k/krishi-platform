@@ -22,6 +22,8 @@ public class TaskMapper {
                 .id(task.getId())
                 .cropPlantingId(task.getCropPlanting() != null ? task.getCropPlanting().getId() : null)
                 .treatmentId(task.getTreatment() != null ? task.getTreatment().getId() : null)
+                .cultivationPlanId(task.getCultivationPlan() != null ? task.getCultivationPlan().getId() : null)
+                .templateTaskId(task.getTemplateTask() != null ? task.getTemplateTask().getId() : null)
                 .taskType(task.getTaskType())
                 .source(task.getSource())
                 .title(task.getTitle())

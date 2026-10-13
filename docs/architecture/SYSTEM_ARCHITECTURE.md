@@ -72,7 +72,15 @@ Krishi is composed of two primary application tiers and an independent machine l
 ### D. Task Scheduling & Operations
 - **Task States:** `PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `SKIPPED`, `OVERDUE`.
 - **Sources:** `MANUAL` (farmer created), `PLAN` (cultivation plan generated), `AUTOMATION` (system rule triggered).
-- **Workflows:** Direct transitions, interactive date rescheduling (`/reschedule`), and explicit skipping (`/skip`).
+### E. Weather Intelligence & Contextual Advisories
+- **Provider:** Open-Meteo Integration via Spring `RestClient` (`https://api.open-meteo.com/v1/forecast`).
+- **Attribution & Licensing:** Open-access tier (max 10,000 calls/day), CC BY 4.0 license; attribution hyperlink explicitly displayed on all weather UI views. Zero credentials required or logged.
+- **Location Resolution & Fallback:** Direct farm GPS coordinates when present; verified district headquarters centroid fallback via `krishi.district_coordinates` (14 verified Kerala districts); HTTP 422 `LOCATION_UNAVAILABLE` when unresolvable.
+- **Spatial Grid Caching:** Coordinates normalized to 2 decimal places (~1.1 km grid), 2-hour fresh TTL, 15-minute manual cooldown, stale cache fallback on network/provider outage. Farm-level authorization enforced at API boundary.
+- **Operational Advisory Rules:** Evaluates 3 verified operational rules (`HEAVY_RAIN_IRRIGATION`, `HIGH_WIND_SPRAYING`, `EXTREME_HEAT_ALERT`). Disease microclimate models and frost warnings deferred pending sensor calibration.
+- **Advisory Identity & Deduplication:** Composite fingerprint (`advisory_type + farm_id + crop_planting_id + task_id + advisory_date`) protected by PostgreSQL partial index `uq_active_weather_advisory` (`WHERE status = 'ACTIVE'`). Prevents duplicates while supporting multi-crop coexistence and escalation.
+- **Concurrency & Lock Safety:** `WeatherSyncScheduler` pins a single physical JDBC `Connection` from `DataSource` for `pg_try_advisory_lock` and `pg_advisory_unlock`, guaranteeing lock release in all execution paths and preventing overlapping scheduled jobs.
+- **Farmer Sovereignty Invariant:** Zero automatic modification, rescheduling, completion, or cancellation of agricultural tasks. Advisories provide actionable recommendations with optional farmer acknowledgment.
 
 ---
 
@@ -100,8 +108,14 @@ Krishi is composed of two primary application tiers and an independent machine l
 
 - **Schema Namespace:** `krishi` (isolated PostgreSQL schema).
 - **Migration Engine:** Flyway version-controlled scripts located in `backend/src/main/resources/db/migration/`.
-- **Current Migration Level:** `V19` (V17: Structured farm location; V18: Crop knowledge catalog, stages, templates, and cultivation plans; V19: Partial unique index enforcing single active cultivation plan per planting).
+- **Current Migration Level:** `V21`
+  - `V17`: Structured farm location (`state`, `district`, `latitude`, `longitude`).
+  - `V18`: Crop knowledge catalog, stages, templates, and cultivation plans with ICAR guidance.
+  - `V19`: Partial unique index enforcing single active cultivation plan per planting.
+  - `V20`: Task skip reason persistence (`skip_reason VARCHAR(255)`).
+  - `V21`: Verified district coordinates registry, normalized spatial weather forecast cache, and weather advisories table with partial active index.
 - **Storage Constraints & Invariants:**
   - `krishi.cultivation_plans`: Guaranteed single `ACTIVE` plan per `crop_planting_id` via PostgreSQL partial index (`uq_active_cultivation_plan_per_planting`).
+  - `krishi.weather_advisories`: Guaranteed single `ACTIVE` advisory per composite fingerprint via PostgreSQL partial index (`uq_active_weather_advisory`).
   - `krishi.cultivation_templates`: Stage order and relative task day offsets enforced via relational keys and check constraints.
 - **Test Database Invariant:** Integration tests strictly require and validate `jdbc:postgresql://localhost:5432/krishi_test_db`. Destruction or recreation of production data is prevented by initializer URL validation guards.

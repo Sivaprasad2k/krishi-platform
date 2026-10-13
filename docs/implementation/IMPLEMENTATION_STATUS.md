@@ -26,7 +26,7 @@ The platform employs a dual-stream development architecture:
 | **Milestone 1** | Core Operational Stabilization (Method Security, Workspace Endpoint, Regression Testing) | Developer A | **Complete** | Unit, Security & Integration (Passing) |
 | **Milestone 2** | Automatic Cultivation Planning (Farm Location, ICAR Knowledge Catalog, Plan Generation, Task Workflows, UI) | Developer A | **Complete** | 46 Backend Tests, 16 Frontend Tests (Passing) |
 | **Milestone 3A** | Core Workflow Stabilization (P0 Dashboard Consolidation, P0 Overdue Task Actions & Skip Reason, P1 Treatments API Consolidation, P1 Farm Navigation & Structured Location) | Developer A | **Complete** | 49 Backend Tests, 22 Frontend Tests (Passing) |
-| **Milestone 3B** | Weather Intelligence & Meteorological Schedule Adjustments | Developer A | **Planned** | Pending Implementation |
+| **Milestone 3B** | Weather Intelligence & Contextual Agricultural Advisories | Developer A | **Complete** | 60 Backend Tests, 27 Frontend Tests (Passing) |
 | **Milestone 4** | Python AI Service Foundation & Contract Setup | Developer B | **Pending Setup** | Service Contract Defined |
 | **Milestone 5** | AI Disease Detection & Computer Vision Pipeline | Developer B | **Planned** | Model Evaluation Suite Pending |
 | **Milestone 6** | Government Schemes Discovery & Subsidies | Developer A | **Planned** | Pending Implementation |
@@ -47,7 +47,8 @@ The platform employs a dual-stream development architecture:
 | **Cultivation Plan Generator** | `com.krishi.backend.cultivation.service.CultivationPlanService` | Verified (V19 Migration) | Idempotent generation, version recording, partial unique active plan index, history preservation on revisions. |
 | **Task Management** | `com.krishi.backend.task` | Verified (V20 Migration) | Lifecycle transitions (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `SKIPPED`, `OVERDUE`), overdue actions unlocked in UI, skip reason persistence (`POST /tasks/{id}/skip`), rescheduling (`/reschedule`). |
 | **Disease Incidents & Treatments**| `com.krishi.backend.diseaseincident`, `com.krishi.backend.treatment` | Production Ready | Field observation tracking, consolidated `GET /api/v1/treatments` endpoint with eager JOIN FETCH hierarchy, waterfall eliminated. |
-| **Frontend PWA** | `frontend/src` | Production Ready | Responsive React 19 + Tailwind PWA, consolidated operational dashboard, SkipTaskModal, farm navigation & filter persistence. Production build verified. |
+| **Weather Intelligence** | `com.krishi.backend.weather`, `frontend/src/features/weather` | Verified (V21 Migration) | Open-Meteo CC BY 4.0 provider abstraction, 2-decimal normalized spatial grid caching (~1.1 km), Kerala district centroid registry, idempotent advisory engine (`HEAVY_RAIN_IRRIGATION`, `HIGH_WIND_SPRAYING`, `EXTREME_HEAT_ALERT`), connection-pinned PostgreSQL advisory locking. |
+| **Frontend PWA** | `frontend/src` | Production Ready | Responsive React 19 + Tailwind PWA, consolidated operational dashboard, WeatherSummaryWidget, WeatherAdvisoryBanner, SkipTaskModal, farm navigation & filter persistence. Production build verified. |
 
 ### B. AI Microservice (Developer B Ownership)
 

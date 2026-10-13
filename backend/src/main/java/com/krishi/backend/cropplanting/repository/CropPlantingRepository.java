@@ -17,4 +17,6 @@ public interface CropPlantingRepository extends JpaRepository<CropPlanting, UUID
      * @return a list of crop plantings
      */
     List<CropPlanting> findByCropCycleId(UUID cropCycleId);
+
+    List<CropPlanting> findByCropCycleFarmIdAndCropCycleStatus(UUID farmId, com.krishi.backend.cropcycle.entity.CropCycleStatus status);
 }

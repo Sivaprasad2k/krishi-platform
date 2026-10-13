@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -15,9 +15,11 @@ import {
   Bot,
   User,
   Check,
-  FastForward
+  FastForward,
+  CloudRain
 } from 'lucide-react';
 import { startTask, completeTask, cancelTask, skipTask } from '../api/taskApi';
+import { getTaskAdvisories } from '../../weather/api/weatherApi';
 import RescheduleTaskModal from './RescheduleTaskModal';
 import SkipTaskModal from './SkipTaskModal';
 
@@ -42,6 +44,23 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [isSkipOpen, setIsSkipOpen] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [taskAdvisories, setTaskAdvisories] = useState([]);
+
+  useEffect(() => {
+    if (isOpen && task?.id) {
+      getTaskAdvisories(task.id)
+        .then(res => {
+          if (res && res.data) {
+            setTaskAdvisories(res.data);
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to load task advisories:', err);
+        });
+    } else {
+      setTaskAdvisories([]);
+    }
+  }, [isOpen, task?.id]);
 
   if (!isOpen || !task) return null;
 
@@ -254,6 +273,41 @@ export const TaskDetailsModal = ({ task, isOpen, onClose, onStatusChange }) => {
               </span>
             </div>
           </div>
+
+          {/* Weather Advisory Impact Warning */}
+          {taskAdvisories && taskAdvisories.length > 0 && (
+            <div className="space-y-2">
+              {taskAdvisories.map(adv => (
+                <div
+                  key={adv.id}
+                  className={`p-4 rounded-2xl border ${
+                    adv.severity === 'HIGH' || adv.severity === 'CRITICAL'
+                      ? 'bg-rose-50 border-rose-200 text-rose-900'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${
+                      adv.severity === 'HIGH' || adv.severity === 'CRITICAL' ? 'text-rose-600' : 'text-amber-600'
+                    }`} />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-bold text-sm">{adv.title}</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-white/80 border border-current">
+                          {adv.severity} Severity
+                        </span>
+                      </div>
+                      <p className="text-xs mb-2 leading-relaxed opacity-90">{adv.message}</p>
+                      <div className="text-xs font-semibold bg-white/70 p-2.5 rounded-xl border border-current/20">
+                        <span className="font-bold">Agronomic Guidance: </span>
+                        <span>{adv.recommendedAction}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Description & Instructions */}
           {task.description && (

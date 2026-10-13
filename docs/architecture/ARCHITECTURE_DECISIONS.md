@@ -72,3 +72,45 @@
      `CREATE UNIQUE INDEX IF NOT EXISTS uq_active_cultivation_plan_per_planting ON krishi.cultivation_plans (crop_planting_id) WHERE status = 'ACTIVE';`
   2. In `CultivationPlanService.java`, execute `planRepository.saveAndFlush(existingPlan)` prior to constructing and saving the new plan, ensuring the SQL `UPDATE` to `SUPERSEDED` is executed immediately on the database connection before the `INSERT` of the new `ACTIVE` plan.
 - **Consequences:** Provides hard database guarantees against duplicate active cultivation plans. Prevents constraint violation exceptions during plan revisions.
+
+---
+
+## ADR 008: Weather Intelligence Provider Abstraction & Open-Meteo Integration
+
+- **Status:** Accepted & Implemented (Milestone 3B)
+- **Context:** Krishi requires accurate meteorological forecasts and agricultural parameters (precipitation, temperature, humidity, wind, and soil conditions) mapped to Indian farm coordinates to power operational advisories and field activity planning. Hardcoding a single commercial vendor or relying on APIs that require high fees or complex authentication creates operational friction and vendor lock-in.
+- **Decision:**
+  1. Define a domain interface `WeatherDataProvider` that abstracts weather retrieval, returning canonical domain objects (`WeatherObservation`, `DailyForecast`, `HourlyForecast`).
+  2. Implement an `OpenMeteoProviderClient` leveraging Open-Meteo's API with ECMWF IFS / GFS numerical models. Open-Meteo provides global coverage, high resolution over India, agricultural variables, 10,000 free requests/day for non-commercial use, and full CC BY 4.0 attribution compliance with UI hyperlink. Support optional API keys for commercial tiers.
+  3. Implement a resilient spatial caching layer (`krishi.weather_forecast_cache`) normalized to 2 decimal places (~1.1 km precision) with a 2-hour TTL and 15-minute manual refresh cooldown. If the external provider is unreachable or times out, serve valid cached data with a `stale: true` indicator. Never fabricate synthetic meteorological values.
+  4. Use farm GPS coordinates when available; fall back to verified district centroid coordinates seeded from Census of India 2011 / NIC portals. If neither is available, return an explicit HTTP 422 `LOCATION_UNAVAILABLE` error prompt.
+- **Consequences:** Decouples core platform from external weather APIs. Ensures low-latency, resilient responses while keeping operating costs zero during early adoption.
+
+---
+
+## ADR 009: Contextual Agricultural Advisories and Non-Intrusive Task Guidance
+
+- **Status:** Accepted & Implemented (Milestone 3B)
+- **Context:** Adverse meteorological events (heavy downpours, strong winds, extreme heat) impact pending field work (irrigation, spraying, harvesting). However, automatically rescheduling, cancelling, or completing tasks without farmer knowledge violates agronomic sovereignty and could result in disastrous operational decisions if conditions vary locally.
+- **Decision:**
+  1. Evaluate weather forecasts against a defensible, ICAR-aligned rules engine producing `WeatherAdvisory` records. Start in V1 with 3 strictly verified operational warning categories:
+     - `HEAVY_RAIN_IRRIGATION`: Rain >= 20mm or prob >= 80% on pending irrigation tasks.
+     - `HIGH_WIND_SPRAYING`: Sustained wind > 20 km/h or gusts > 30 km/h on pending spraying/fertilizing tasks.
+     - `EXTREME_HEAT_ALERT`: Max temperature >= 40.0°C for active plantings.
+  2. Defer unverified agronomic predictions (fungal blast microclimate models, frost warnings) pending cultivar-level sensor calibration.
+  3. When an advisory impacts a scheduled task, link the advisory to the task (`task_id`) and render contextual warning chips on task cards and modal guidance. Never mutate task state, due dates, or completion data automatically.
+  4. Enforce idempotency and deduplication via unique composite fingerprints (`farmId:plantingId:taskId:ruleCode:targetDate`) backed by a partial unique index (`WHERE status = 'ACTIVE'`).
+  5. If conditions worsen, supersede the previous advisory, insert the escalated alert, and dispatch a notification. If conditions remain stable, update `lastEvaluatedAt` without re-notifying the farmer.
+- **Consequences:** Empowers farmers with actionable contextual intelligence while preserving operational control and preventing alert fatigue.
+
+---
+
+## ADR 010: Concurrency-Safe Scheduler Advisory Locking & Immediate Action Queue Flushing
+
+- **Status:** Accepted & Implemented (Milestone 3B)
+- **Context:** Scheduled background jobs (e.g. daily weather forecast sync across registered farms) in a multi-instance or clustered environment risk race conditions, redundant API consumption, and rate-limit exhaustion if multiple workers execute simultaneously. Furthermore, Hibernate's action queue delays entity UPDATE operations relative to INSERTs within a transaction, which triggers unique constraint violations on partial indexes (`WHERE status = 'ACTIVE'`) during entity supersession.
+- **Decision:**
+  1. Guard the scheduled weather synchronization job with a 64-bit PostgreSQL session-level advisory lock (`SELECT pg_try_advisory_lock(?)`) pinned to a single physical JDBC `Connection` via `DataSource.getConnection()`.
+  2. Wrap lock acquisition and execution in a `try-with-resources` construct with an explicit `pg_advisory_unlock` in the `finally` block on the exact same connection instance. If the connection drops or is closed, PostgreSQL guarantees automatic lock release, completely eliminating orphaned locks and overlapping executions.
+  3. When superseding active entities (e.g. transitioning an advisory from `ACTIVE` to `SUPERSEDED` upon severity escalation), call `repository.saveAndFlush(existing)` prior to creating and saving the new `ACTIVE` entity. This forces the SQL `UPDATE` to execute on the database connection immediately, preventing unique constraint collisions against the partial index.
+- **Consequences:** Guarantees zero overlapping scheduled jobs without requiring distributed lock brokers like Redis or ZooKeeper, and prevents unique constraint violations during entity escalation.

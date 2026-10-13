@@ -56,4 +56,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
      */
     @Query("SELECT COUNT(t) FROM Task t WHERE t.cropPlanting.cropCycle.farm.owner.id = :ownerId AND t.status IN :statuses")
     long countPendingTasksByOwner(@Param("ownerId") UUID ownerId, @Param("statuses") List<TaskStatus> statuses);
+
+    @Query("SELECT t FROM Task t WHERE t.cropPlanting.cropCycle.farm.id = :farmId AND t.status IN :statuses")
+    List<Task> findByFarmIdAndStatusIn(@Param("farmId") UUID farmId, @Param("statuses") List<TaskStatus> statuses);
 }

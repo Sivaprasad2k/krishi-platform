@@ -2,6 +2,54 @@
 
 This log records sequential architectural changes, migrations, security enhancements, and milestones implemented in the Krishi Platform codebase.
 
+## [2026-10-13] Milestone 3B: Weather Intelligence & Contextual Advisories
+
+### 1. Mandatory Architectural Corrections Implemented
+- **Verified Open-Meteo Integration & Attribution:** Implemented Open-Meteo API integration (`https://api.open-meteo.com/v1/forecast`) via Spring Boot 4 `RestClient`. Verified non-commercial terms (10,000 calls/day, 5,000 calls/hour) and CC BY 4.0 license. Rendered mandatory attribution hyperlink in UI. Zero provider credentials required or logged.
+- **Connection-Pinned PostgreSQL Advisory Locking:** Implemented `WeatherSyncScheduler` with connection-pinned `pg_try_advisory_lock(84729103)` ensuring lock acquisition and release run on the exact same physical JDBC connection from `DataSource`, preventing lock leakage across HikariCP pools and preventing overlapping executions.
+- **Stable Advisory Identity & Deduplication:** Created composite deduplication fingerprint (`advisory_type + farm_id + crop_planting_id + task_id + advisory_date`) protected by PostgreSQL partial unique index `uq_active_weather_advisory` (`WHERE status = 'ACTIVE'`). Prevents duplicate advisories/notifications while permitting multi-crop coexistence and severity escalations (marking previous advisory `SUPERSEDED` via `saveAndFlush()`).
+- **Normalized Spatial Grid Caching (~1.1 km):** Normalized query coordinates to 2 decimal places ($0.01^\circ \approx 1.1\text{ km}$), sharing forecasts across neighboring farms in the same village to conserve API calls. Added 2-hour fresh TTL, 15-minute manual refresh cooldown, and stale cache fallback on network failures. Documented elevation limitations in Western Ghats.
+- **Verified District Provenance & HTTP 422 Fallback:** Seeded 14 verified Kerala district headquarters centroids from official Census of India / Government of Kerala data in `krishi.district_coordinates`. Unknown or unresolvable districts return HTTP 422 `LOCATION_UNAVAILABLE` without coordinate fabrication.
+- **Farmer Sovereignty Invariant:** Guaranteed zero automated modification, rescheduling, completion, or cancellation of agricultural tasks. Weather advisories strictly provide contextual recommendations with optional farmer acknowledgment.
+
+### 2. Database Schema Migrations
+- **`V21__create_weather_and_district_registry.sql`**:
+  - Created `krishi.district_coordinates` seeded with 14 verified Kerala district headquarters coordinates.
+  - Created `krishi.weather_forecast_cache` keyed by `spatial_grid_key` (`{lat_2dec}_{lon_2dec}`) with forecast metrics, 7-day JSONB payload, freshness timestamps, and manual cooldown index.
+  - Created `krishi.weather_advisories` with foreign keys to `farms`, `crop_plantings`, `tasks`, deduplication fingerprint, and partial unique index `uq_active_weather_advisory`.
+
+### 3. Backend Implementation & Security
+- **Domain Entities & Repositories:**
+  - `DistrictCoordinate`, `WeatherForecastCache`, `WeatherAdvisory`.
+  - Added `WEATHER_ADVISORY` to `NotificationType` enum.
+  - Added `LOCATION_UNAVAILABLE` to `ErrorCode` enum and created `LocationUnavailableException` handled by `GlobalExceptionHandler`.
+- **Weather Services:**
+  - `OpenMeteoProviderClient`: Connect/read timeouts (3s/5s), attribution metadata, no logged credentials.
+  - `WeatherNormalizationService`: Normalizes coordinates to 2 decimal places and constructs standardized grid keys and forecast DTOs.
+  - `DistrictCentroidResolver`: Resolves farm coordinates via direct GPS or case-insensitive district registry match; throws `LocationUnavailableException` if unresolvable.
+  - `WeatherAdvisoryEngine`: Evaluates 3 operational rules (`HEAVY_RAIN_IRRIGATION`, `HIGH_WIND_SPRAYING`, `EXTREME_HEAT_ALERT`). Handles deduplication, auto-expiry of past advisories, escalation with `saveAndFlush()`, and notification dispatching via existing notification infrastructure.
+  - `WeatherForecastService`: Manages 2-hour cache TTL, 15-minute refresh cooldown, stale cache fallback, and farmer ownership verification (`entity.getFarmer().getId().equals(authenticatedUserId)`).
+- **Concurrency & Scheduling:**
+  - `WeatherSyncScheduler`: Daily synchronized background refresh at 06:00 IST using connection-pinned PostgreSQL advisory lock.
+- **API Controller:**
+  - `WeatherController`: Exposed `/api/v1/farms/{farmId}/weather`, `/api/v1/farms/{farmId}/weather/refresh`, `/api/v1/farms/{farmId}/advisories`, `/api/v1/advisories/{id}/acknowledge`, `/api/v1/tasks/{taskId}/advisories`.
+
+### 4. Frontend Implementation & UI Integration
+- **API Client:** `weatherApi.js` supporting weather retrieval, manual refresh, farm advisories, task advisories, and acknowledgment.
+- **Components:**
+  - `WeatherSummaryWidget.jsx`: Current weather, temperature, humidity, wind, 7-day strip, location precision badge (GPS / District), stale cache banner, refresh button, error handling (`LOCATION_UNAVAILABLE`), and CC BY 4.0 Open-Meteo attribution hyperlink.
+  - `WeatherAdvisoryBanner.jsx`: Severity badges (`WARNING`, `ALERT`, `ADVISORY`), agricultural rationale, actionable recommendation, and Acknowledge button.
+- **Workflow Integrations:**
+  - `DashboardPage.jsx`: Renders weather summary widget and active weather advisories banner in the "Attention Required" section.
+  - `FarmDetailsPage.jsx`: Renders farm weather conditions and farm-scoped active advisories.
+  - `TaskDetailsModal.jsx`: Queries and displays task-specific operational weather advisories (e.g., heavy rain during irrigation).
+
+### 5. Automated Verification
+- **Backend Test Suite:** 60/60 tests passed across all modules, including 11 comprehensive tests in `WeatherIntegrationTest.java` (GPS resolution, district centroid fallback, location unavailable 422, 2-hour cache reuse, 15-min cooldown, stale fallback, heavy rain advisory, high wind advisory, extreme heat alert, advisory deduplication & escalation, IDOR farmer ownership protection).
+- **Frontend Test Suite:** 27/27 tests passed across 9 Vitest suites, including 5 new unit tests in `weatherApi.test.js`.
+- **Production Build:** `vite build` completed cleanly with code 0 (PWA precache bundle generated).
+- **Git Whitespace Integrity:** `git diff --check` passed with code 0.
+
 ---
 
 ## [2026-10-13] Milestone 3A: Core Workflow Stabilization

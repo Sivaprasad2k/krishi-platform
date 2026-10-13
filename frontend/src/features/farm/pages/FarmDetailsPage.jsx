@@ -8,6 +8,9 @@ import StateView from '../../../shared/components/StateView';
 import { fromHectares, formatArea } from '../../../shared/utils/areaConversion';
 import { useSeasons } from '../../cropCycle/hooks/useSeasons';
 import SeasonStatusBadge from '../../cropCycle/components/SeasonStatusBadge';
+import WeatherSummaryWidget from '../../weather/components/WeatherSummaryWidget';
+import WeatherAdvisoryBanner from '../../weather/components/WeatherAdvisoryBanner';
+import { getFarmAdvisories } from '../../weather/api/weatherApi';
 
 /**
  * FarmDetailsPage displays full operational stats for a specific farm
@@ -20,6 +23,7 @@ const FarmDetailsPage = () => {
   const { selectedFarm, loading, error, fetchFarm } = useFarms();
   const { seasons, fetchFarmSeasons } = useSeasons();
   const [internalState, setInternalState] = useState('loading');
+  const [farmAdvisories, setFarmAdvisories] = useState([]);
 
   const loadData = async () => {
     setInternalState('loading');
@@ -27,6 +31,16 @@ const FarmDetailsPage = () => {
       fetchFarm(farmId),
       fetchFarmSeasons(farmId)
     ]);
+
+    try {
+      const advRes = await getFarmAdvisories(farmId);
+      if (advRes && advRes.data) {
+        setFarmAdvisories(advRes.data);
+      }
+    } catch (e) {
+      console.warn('Failed to load farm advisories:', e);
+    }
+
     if (!farmRes.success || !seasonsRes.success) {
       setInternalState(navigator.onLine ? 'error' : 'offline');
     } else {
@@ -149,6 +163,18 @@ const FarmDetailsPage = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Weather Advisories & Intelligence */}
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <h2 className="text-xl font-black text-gray-800">
+                {t('farm.weather', 'Weather Intelligence & Advisories')}
+              </h2>
+              <WeatherAdvisoryBanner
+                advisories={farmAdvisories}
+                onAcknowledge={(id) => setFarmAdvisories(prev => prev.filter(a => a.id !== id))}
+              />
+              <WeatherSummaryWidget farmId={farmId} farmName={selectedFarm?.name} />
             </div>
 
             {/* Operational Workflow Panels */}

@@ -18,11 +18,15 @@ import {
   Compass,
   MapPin,
   RefreshCw,
-  X
+  X,
+  Sun
 } from 'lucide-react';
 import { getDashboardSummary, getAlerts, fetchFarmerOperations } from './api/dashboardApi';
 import { fetchCropsList } from '../crops/api/getSeasonCrops';
 import apiClient from '../../core/api/axios';
+import WeatherSummaryWidget from '../weather/components/WeatherSummaryWidget';
+import WeatherAdvisoryBanner from '../weather/components/WeatherAdvisoryBanner';
+import { getFarmAdvisories } from '../weather/api/weatherApi';
 
 /**
  * Redesigned Operational Dashboard for Krishi.
@@ -51,6 +55,8 @@ const DashboardPage = () => {
   const [alerts, setAlerts] = useState([]);
   const [crops, setCrops] = useState([]);
   const [upcomingHarvests, setUpcomingHarvests] = useState([]);
+  const [primaryFarm, setPrimaryFarm] = useState(null);
+  const [weatherAdvisories, setWeatherAdvisories] = useState([]);
   
   // Custom dialog/toast overlay for future feature quick actions
   const [toastText, setToastText] = useState('');
@@ -101,6 +107,26 @@ const DashboardPage = () => {
         return daysDiff >= -5 && daysDiff <= 14;
       });
       setUpcomingHarvests(harvests);
+
+      // 5. Fetch primary farm for weather intelligence
+      try {
+        const farmsRes = await apiClient.get('/farms');
+        const farmsList = farmsRes.data?.data || [];
+        if (farmsList.length > 0) {
+          const mainFarm = farmsList[0];
+          setPrimaryFarm(mainFarm);
+          try {
+            const advRes = await getFarmAdvisories(mainFarm.id);
+            if (advRes && advRes.data) {
+              setWeatherAdvisories(advRes.data);
+            }
+          } catch (advErr) {
+            console.warn('Failed to load farm weather advisories:', advErr);
+          }
+        }
+      } catch (farmErr) {
+        console.warn('Failed to load farms for weather dashboard:', farmErr);
+      }
 
       if (activeSummary.farmCount === 0) {
         setViewState('empty');
@@ -194,13 +220,19 @@ const DashboardPage = () => {
               <span>{t('dashboard.attention.title', 'Attention Required')}</span>
             </h2>
 
-            {(problems.length === 0 && tasks.length === 0 && alerts.length === 0 && upcomingHarvests.length === 0) ? (
+            {(problems.length === 0 && tasks.length === 0 && alerts.length === 0 && upcomingHarvests.length === 0 && weatherAdvisories.length === 0) ? (
               <div className="rounded-2xl border border-[#C9DCCB] bg-white p-5 text-center text-[#16A34A] font-extrabold flex items-center justify-center space-x-2.5 shadow-2xs">
                 <CheckSquare className="h-5 w-5 text-[#16A34A]" />
                 <span>{t('dashboard.attention.allClear', 'All clear! No urgent attention required.')}</span>
               </div>
             ) : (
               <div className="space-y-3">
+                {/* Weather Advisories Banner */}
+                <WeatherAdvisoryBanner
+                  advisories={weatherAdvisories}
+                  onAcknowledge={(id) => setWeatherAdvisories(prev => prev.filter(a => a.id !== id))}
+                />
+
                 {/* Upcoming Harvest Alerts */}
                 {upcomingHarvests.map(crop => {
                   const daysLeft = Math.ceil((new Date(crop.expectedHarvestDate) - new Date()) / (1000 * 60 * 60 * 24));
@@ -306,6 +338,17 @@ const DashboardPage = () => {
               </div>
             )}
           </section>
+
+          {/* SECTION 2B: WEATHER INTELLIGENCE */}
+          {primaryFarm && (
+            <section className="space-y-3.5">
+              <h2 className="text-xs font-black text-[#525252] uppercase tracking-wider flex items-center space-x-2">
+                <Sun className="h-4 w-4 text-emerald-600" />
+                <span>{t('dashboard.weather.title', 'Weather & Field Conditions')}</span>
+              </h2>
+              <WeatherSummaryWidget farmId={primaryFarm.id} farmName={primaryFarm.name} />
+            </section>
+          )}
 
           {/* SECTION 4: QUICK ACTIONS */}
           <section className="space-y-4">

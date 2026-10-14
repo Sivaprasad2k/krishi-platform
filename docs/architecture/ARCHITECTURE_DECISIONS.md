@@ -114,3 +114,69 @@
   2. Wrap lock acquisition and execution in a `try-with-resources` construct with an explicit `pg_advisory_unlock` in the `finally` block on the exact same connection instance. If the connection drops or is closed, PostgreSQL guarantees automatic lock release, completely eliminating orphaned locks and overlapping executions.
   3. When superseding active entities (e.g. transitioning an advisory from `ACTIVE` to `SUPERSEDED` upon severity escalation), call `repository.saveAndFlush(existing)` prior to creating and saving the new `ACTIVE` entity. This forces the SQL `UPDATE` to execute on the database connection immediately, preventing unique constraint collisions against the partial index.
 - **Consequences:** Guarantees zero overlapping scheduled jobs without requiring distributed lock brokers like Redis or ZooKeeper, and prevents unique constraint violations during entity escalation.
+
+---
+
+## ADR 011: Deterministic Agronomic Growth-Stage Estimator and Boundary Semantics
+
+- **Status:** Accepted & Implemented (Milestone 4A)
+- **Context:** Krishi requires dynamic calculation of the current crop growth stage from planting dates and published cultivation templates (ICAR packages). A machine learning or stochastic approach introduces non-determinism, hallucinations, and unreliability in agricultural operations. Additionally, growth stages define integer day offsets (`startDayOffset`, `endDayOffset`) where boundary overlaps (e.g. Nursery ending at day 0 and Transplanting starting at day 0) require explicit, non-arbitrary domain semantics.
+- **Decision:**
+  1. **Day-Count Convention:** Standard calendar-day difference calculated via `ChronoUnit.DAYS.between(plantingDate.toLocalDate(), asOfDate)`. Day 0 is strictly defined as the calendar day of planting (`elapsedDays == 0`). Negative `elapsedDays` indicates pre-planting time.
+  2. **Closed-Interval Matching & Day 0 Transition:** Evaluate stages based on closed integer intervals `[startDayOffset, endDayOffset]`. In ICAR cultivation templates (e.g., Rice), the Nursery stage spans `[-15, 0]` and Transplanting & Establishment spans `[0, 20]`. When `elapsedDays == 0`, the crop enters the field; thus the resolver deterministically selects the field stage (Stage 2) rather than remaining in nursery.
+  3. **No Silent or Arbitrary Selection:** If non-consecutive or erroneous stages overlap (e.g. `[10, 30]` and `[20, 50]`) or if gaps exist in the active plan's stage catalogue, the resolver explicitly returns `STAGE_DEFINITION_ERROR` with a descriptive message rather than silently selecting an arbitrary stage.
+  4. **Explicit Lifecycle Statuses:** Model stage estimates using `GrowthStageStatus`:
+     - `RESOLVED`: Stage successfully determined from active cultivation plan.
+     - `PRE_PLANTING`: Evaluated before planting date or before the earliest stage offset (`elapsedDays < 0`).
+     - `POST_HARVEST`: Evaluated after `expectedHarvestDate` or past the template's final stage `endDayOffset`.
+     - `NO_ACTIVE_PLAN`: Planting exists but lacks an active cultivation plan.
+     - `MISSING_PLANTING_DATE`: Planting date is null.
+     - `STAGE_DEFINITION_ERROR`: Inconsistent or overlapping stage definitions detected.
+  5. **Progress Calculation:** Calculate `stageProgressPercentage` as `(elapsedDays - startDay) / (endDay - startDay) * 100` clamped to `[0.0, 100.0]`. Calculate `overallProgressPercentage` as `elapsedDays / totalDurationDays * 100` clamped to `[0.0, 100.0]`.
+  6. **API Integration:** Expose `estimatedGrowthStage` in `CropPlantingResponse` and `CropWorkspaceResponse` with an optional `asOfDate` query parameter (defaulting to current date), preserving backward compatibility.
+- **Consequences:** Fully deterministic, testable growth-stage resolution without external dependencies or machine learning. Prevents mistaking an estimate for a farmer-confirmed observation.
+
+---
+
+## ADR 012: Agricultural Context Foundation & Safe Domain Aggregation
+
+- **Status:** Accepted & Implemented (Milestone 4B)
+- **Context:** Future agronomic advisory rules and external AI services (disease detection, doctor advisory, nutrient planning) require a comprehensive snapshot of crop state, planting lifecycle, active cultivation plans, operational tasks, field coordinates, weather conditions, and active advisories. Creating separate or persisted database models for context would introduce stale data duplication, relational synchronization hazards, and schema bloat.
+- **Decision:**
+  1. **Transient Domain Aggregation Service:** Implement `AgriculturalContextService` with read-only transactional semantics (`@Transactional(readOnly = true)`) aggregating existing domain models (`CropPlanting`, `CropCycle`, `Farm`, `CultivationPlan`, `Task`, `WeatherForecastCache`, `WeatherAdvisory`). Zero persistence of derived context.
+  2. **Strict Missing-Data Preservation:** Never invent missing values. If crop variety or plot is unrecorded, return `null`. Preserve all `GrowthStageStatus` semantics (`RESOLVED`, `NO_ACTIVE_PLAN`, `PRE_PLANTING`, `POST_HARVEST`, `STAGE_DEFINITION_ERROR`).
+  3. **Clear Distinction between Estimated vs Observed Growth Stage:** Expose `estimatedStage` (derived from mathematical calendar-day offsets against ICAR templates) alongside `observedStage` (null/unconfirmed biological field observation), with an explicit notice to prevent AI models or farmers from conflating algorithmic estimates with ground truth.
+  4. **Defensive Environmental Weather Resolution:** Weather provider outages or unconfigured farm coordinates must never fail operational agricultural requests. Implement a 4-tier freshness classification (`FRESH`, `STALE`, `UNAVAILABLE`, `LOCATION_UNAVAILABLE`). Pre-validate coordinate resolution and configure `@Transactional(noRollbackFor = {LocationUnavailableException.class, WeatherProviderException.class})` to prevent unexpected rollback of outer read-only transactions.
+  5. **Dual Endpoint Architecture:**
+     - Extend existing `GET /api/v1/crop-plantings/{plantingId}/workspace` with optional `weather` context to eliminate extra frontend hops.
+     - Expose dedicated `GET /api/v1/crop-plantings/{plantingId}/context` (alias `/agricultural-context`) for AI services and headless rule engines, omitting UI-specific incident/treatment payloads.
+  6. **Tenant Isolation:** Enforce farmer role verification (`@PreAuthorize("hasRole('FARMER')")`) and hierarchical farm ownership validation across both workspace and context endpoints.
+- **Consequences:** Clean, deterministic context provider supporting both interactive UI workflows and future AI integrations with zero schema changes, zero external dependencies, and complete failure resilience.
+
+---
+
+## ADR 013: Deterministic Agricultural Advisory Rules Engine & Lifecycle Semantics
+
+- **Status:** Accepted & Implemented (Milestone 5A)
+- **Context:** Krishi requires an explainable, deterministic rules engine that converts contextual agricultural intelligence (`AgriculturalContextResponse`) into actionable recommendations without becoming another disconnected CRUD module. Recommendations must explicitly document rule assumptions, provenance, and lifecycle states while preserving farmer ownership and preventing duplicate alerts.
+- **Decision:**
+  1. **Deterministic Rule Taxonomy & Non-Assumption of Safety:** Every rule implements `AgriculturalRule` and returns a `RuleEvaluationResult` categorized into four explicit outcomes:
+     - `RULE_EVALUATION_SUCCESS`: Rule evaluated successfully; advisory generated or conditions confirmed benign.
+     - `RULE_NOT_APPLICABLE`: Rule does not apply to the current crop, stage, or task context.
+     - `INSUFFICIENT_CONTEXT`: Required inputs are missing or stale. Missing or stale data is **never** interpreted as evidence that conditions are safe.
+     - `RULE_EVALUATION_FAILURE`: Runtime exception caught safely without crashing batch or single-planting evaluations.
+  2. **Isolated Rule Boundary:** `AgriculturalAdvisoryEngine` evaluates each rule in an isolated `try/catch` boundary, ensuring an unhandled exception in one rule does not abort remaining rule evaluations.
+  3. **Initial Rule Set & Provenance:**
+     - `IRRIGATION_RAINFALL_CONFLICT`: Withhold scheduled artificial irrigation when forecast precipitation on task due date is $\ge 20.0\,\text{mm}$ or probability $\ge 80\%$ (Provenance: Standard ICAR & Agricultural Water Management Guidelines).
+     - `CHEMICAL_SPRAYING_WIND_RISK`: Postpone chemical applications when forecast sustained wind $> 20.0\,\text{km/h}$ or gusts $> 30.0\,\text{km/h}$ (Provenance: *Provisional threshold* based on FAO/CABI Agrochemical Spray Drift Guidelines).
+     - `OVERDUE_CULTIVATION_TASK`: Alert overdue tasks ($\ge 1\,\text{day}$) and contextualize agronomic risk against current growth stage (Provenance: Krishi Cultivation Operations Standard).
+     - `STAGE_TASK_MISALIGNMENT`: Warn when pending tasks belong to prior elapsed cultivation stages; evaluated **only** when `GrowthStageStatus == RESOLVED` (Provenance: Certified ICAR Cultivation Plan Phenological Stage Boundaries).
+  4. **Advisory Persistence & Idempotency:** Persist advisories in `krishi.agricultural_advisories` via Flyway migration `V22`. Deduplication via composite fingerprint (`farm:planting:task:rule:date`) backed by a partial unique index `WHERE status = 'ACTIVE'`. Concurrent creation conflicts resolve safely to the existing active record.
+  5. **Explicit Advisory Lifecycle:** Support five discrete lifecycle states: `ACTIVE`, `ACKNOWLEDGED`, `RESOLVED`, `SUPERSEDED`, and `EXPIRED`. Escalation supersedes lower-severity active advisories and dispatches `[ESCALATION]` notifications. Conditions abating or tasks completing automatically transition advisories to `RESOLVED`.
+  6. **Workflow Non-Interference:** The rules engine is advisory-only. It never automatically mutates, reschedules, completes, or skips farmer tasks.
+  7. **Security & Auditability:** Enforce `ROLE_FARMER` and verified farm ownership on all advisory APIs. Publish domain events (`AGRICULTURAL_ADVISORY_CREATED`, `AGRICULTURAL_ADVISORY_ACKNOWLEDGED`, `AGRICULTURAL_ADVISORY_RESOLVED`) persisted synchronously to `krishi.domain_events`.
+   8. **Notification Transaction Boundary Isolation:** Configure `NotificationService.createNotification` with `@Transactional(propagation = Propagation.REQUIRES_NEW)` to ensure notification database failures execute in an isolated transaction. The outer advisory transaction catches and logs notification errors without being marked rollback-only, guaranteeing that the advisory remains persisted.
+   9. **API Response Contract Consistency:** All endpoints in `AgriculturalAdvisoryController` adhere to Krishi's standard `ApiResponse<T>` envelope (`success`, `message`, `data`, `timestamp`) across evaluation, listing, acknowledgment, and resolution.
+   10. **N+1 Query Elimination in Task Context Loading:** `AgriculturalContextService.buildRelevantTasks` leverages `taskRepository.findByCropPlantingIdWithTemplateTaskAndStage(plantingId)` with eager `LEFT JOIN FETCH` on template tasks and cultivation stages, eliminating relational query cascades during context resolution.
+   11. **Audit Completeness & Fingerprint Stabilization:** Automated rules-engine resolutions (due to linked task completion, cancellation, skipping, or risk conditions clearing clean) publish `AdvisoryResolvedEvent` with descriptive `resolutionReason`. Status transitions to `RESOLVED` prevent duplicate resolution events during repeated evaluations. Task rule fingerprints bind to task `dueDate` rather than volatile evaluation timestamps to ensure deterministic identity.
+- **Consequences:** Provides robust, transparent, reproducible decision support for farmers with zero external AI dependencies, transaction-safe notification dispatch, and strong idempotency guarantees.

@@ -1,5 +1,6 @@
 package com.krishi.backend.cropplanting.dto;
 
+import com.krishi.backend.cultivation.dto.EstimatedGrowthStageResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,6 +16,7 @@ public class CropPlantingResponse {
     private String cropVariety;
     private LocalDateTime plantingDate;
     private LocalDateTime expectedHarvestDate;
+    private EstimatedGrowthStageResponse estimatedGrowthStage;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

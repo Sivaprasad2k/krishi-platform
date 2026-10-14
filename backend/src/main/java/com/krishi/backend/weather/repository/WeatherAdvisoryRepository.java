@@ -23,5 +23,7 @@ public interface WeatherAdvisoryRepository extends JpaRepository<WeatherAdvisory
 
     List<WeatherAdvisory> findByTaskIdAndStatus(UUID taskId, AdvisoryStatus status);
 
+    List<WeatherAdvisory> findByCropPlantingIdAndStatusInOrderByTargetDateAsc(UUID cropPlantingId, List<AdvisoryStatus> statuses);
+
     List<WeatherAdvisory> findByFarmIdAndTargetDateBeforeAndStatus(UUID farmId, LocalDate cutoffDate, AdvisoryStatus status);
 }

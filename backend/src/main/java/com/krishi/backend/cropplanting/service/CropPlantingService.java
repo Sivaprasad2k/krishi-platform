@@ -34,10 +34,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.krishi.backend.cultivation.dto.EstimatedGrowthStageResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +57,11 @@ public class CropPlantingService {
     private final TreatmentRepository treatmentRepository;
     private final TreatmentMapper treatmentMapper;
     private final com.krishi.backend.cultivation.service.CultivationPlanService cultivationPlanService;
+    private final com.krishi.backend.cultivation.service.AgronomicStageResolverService agronomicStageResolverService;
+    private final AgriculturalContextService agriculturalContextService;
     private final DomainEventPublisher domainEventPublisher;
+
+
 
     /**
      * Creates a new CropPlanting on a specific CropCycle.
@@ -110,7 +116,8 @@ public class CropPlantingService {
                 .build();
         domainEventPublisher.publish(event);
 
-        return cropPlantingMapper.toResponse(saved);
+        EstimatedGrowthStageResponse stage = agronomicStageResolverService.resolveGrowthStage(saved);
+        return cropPlantingMapper.toResponse(saved, stage);
     }
 
     /**
@@ -158,14 +165,23 @@ public class CropPlantingService {
                 .build();
         domainEventPublisher.publish(event);
 
-        return cropPlantingMapper.toResponse(updated);
+        EstimatedGrowthStageResponse stage = agronomicStageResolverService.resolveGrowthStage(updated);
+        return cropPlantingMapper.toResponse(updated, stage);
     }
 
     /**
-     * Retrieves the details of a specific CropPlanting, enforcing ownership.
+     * Retrieves the details of a specific CropPlanting as of today, enforcing ownership.
      */
     @Transactional(readOnly = true)
     public CropPlantingResponse getCropPlantingById(UUID plantingId, CustomUserDetails userDetails) {
+        return getCropPlantingById(plantingId, null, userDetails);
+    }
+
+    /**
+     * Retrieves the details of a specific CropPlanting as of an optional evaluation date, enforcing ownership.
+     */
+    @Transactional(readOnly = true)
+    public CropPlantingResponse getCropPlantingById(UUID plantingId, LocalDate asOfDate, CustomUserDetails userDetails) {
         validateFarmerRole(userDetails);
 
         CropPlanting planting = cropPlantingRepository.findById(plantingId)
@@ -173,14 +189,23 @@ public class CropPlantingService {
 
         validateCycleOwnership(planting.getCropCycle(), userDetails.getUserId());
 
-        return cropPlantingMapper.toResponse(planting);
+        EstimatedGrowthStageResponse stage = agronomicStageResolverService.resolveGrowthStage(planting, asOfDate);
+        return cropPlantingMapper.toResponse(planting, stage);
     }
 
     /**
-     * Lists all crop plantings for a specific crop cycle, enforcing ownership.
+     * Lists all crop plantings for a specific crop cycle as of today, enforcing ownership.
      */
     @Transactional(readOnly = true)
     public List<CropPlantingResponse> getPlantingsByCropCycle(UUID cropCycleId, CustomUserDetails userDetails) {
+        return getPlantingsByCropCycle(cropCycleId, null, userDetails);
+    }
+
+    /**
+     * Lists all crop plantings for a specific crop cycle as of an optional evaluation date, enforcing ownership.
+     */
+    @Transactional(readOnly = true)
+    public List<CropPlantingResponse> getPlantingsByCropCycle(UUID cropCycleId, LocalDate asOfDate, CustomUserDetails userDetails) {
         validateFarmerRole(userDetails);
 
         CropCycle cropCycle = cropCycleRepository.findById(cropCycleId)
@@ -190,18 +215,29 @@ public class CropPlantingService {
 
         List<CropPlanting> plantings = cropPlantingRepository.findByCropCycleId(cropCycleId);
         return plantings.stream()
-                .map(cropPlantingMapper::toResponse)
+                .map(p -> cropPlantingMapper.toResponse(p, agronomicStageResolverService.resolveGrowthStage(p, asOfDate)))
                 .collect(Collectors.toList());
     }
 
     /**
      * Retrieves unified crop workspace details containing crop, season, farm,
-     * tasks, disease incidents, and treatments in a single call.
+     * tasks, disease incidents, treatments, and estimated growth stage as of today.
      * Enforces role and ownership verification.
      */
     @PreAuthorize("hasRole('FARMER')")
     @Transactional(readOnly = true)
     public CropWorkspaceResponse getCropWorkspace(UUID plantingId, CustomUserDetails userDetails) {
+        return getCropWorkspace(plantingId, null, userDetails);
+    }
+
+    /**
+     * Retrieves unified crop workspace details containing crop, season, farm,
+     * tasks, disease incidents, treatments, and estimated growth stage as of an optional evaluation date.
+     * Enforces role and ownership verification.
+     */
+    @PreAuthorize("hasRole('FARMER')")
+    @Transactional(readOnly = true)
+    public CropWorkspaceResponse getCropWorkspace(UUID plantingId, LocalDate asOfDate, CustomUserDetails userDetails) {
         validateFarmerRole(userDetails);
 
         CropPlanting planting = cropPlantingRepository.findById(plantingId)
@@ -227,8 +263,12 @@ public class CropPlantingService {
         com.krishi.backend.cultivation.dto.CultivationPlanResponse planResponse =
                 cultivationPlanService.getActivePlan(plantingId, userDetails);
 
+        EstimatedGrowthStageResponse stageResponse = agronomicStageResolverService.resolveGrowthStage(planting, asOfDate);
+        com.krishi.backend.cropplanting.dto.context.WeatherContext weatherContext =
+                agriculturalContextService.resolveWeatherContext(farm, plantingId, asOfDate, userDetails);
+
         return CropWorkspaceResponse.builder()
-                .crop(cropPlantingMapper.toResponse(planting))
+                .crop(cropPlantingMapper.toResponse(planting, stageResponse))
                 .season(cropCycleMapper.toResponse(cycle))
                 .farm(farmMapper.toResponse(farm))
                 .farmName(farm.getName())
@@ -238,6 +278,8 @@ public class CropPlantingService {
                 .openIncidents(openIncidentResponses)
                 .treatments(treatments.stream().map(treatmentMapper::toResponse).collect(Collectors.toList()))
                 .cultivationPlan(planResponse)
+                .estimatedGrowthStage(stageResponse)
+                .weather(weatherContext)
                 .build();
     }
 

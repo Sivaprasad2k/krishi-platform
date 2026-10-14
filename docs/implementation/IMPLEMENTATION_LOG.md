@@ -2,6 +2,134 @@
 
 This log records sequential architectural changes, migrations, security enhancements, and milestones implemented in the Krishi Platform codebase.
 
+## [2026-10-14] Milestone 5A: Agricultural Advisory Rules Engine
+
+### 1. Mandatory Architectural Invariants Implemented
+- **Deterministic, Explainable Rules Engine:** Implemented `AgriculturalAdvisoryEngine` and `AgriculturalAdvisoryService` operating over `AgriculturalContextResponse`. All rules implement `AgriculturalRule` and produce explicit outcomes (`RULE_EVALUATION_SUCCESS`, `RULE_NOT_APPLICABLE`, `INSUFFICIENT_CONTEXT`, `RULE_EVALUATION_FAILURE`).
+- **Non-Assumption of Safety:** Missing or stale data (e.g. weather `STALE`/`UNAVAILABLE`, unresolved growth stage) is strictly categorized as `INSUFFICIENT_CONTEXT` and never assumed to be safe conditions.
+- **Isolated Rule Boundary:** Engine catches per-rule evaluation exceptions safely to prevent an unexpected error in one rule from aborting the evaluation of unrelated rules.
+- **Initial High-Value Rules Implemented:**
+  1. `IRRIGATION_RAINFALL_CONFLICT`: Withholds scheduled artificial irrigation when forecast precipitation on task due date is $\ge 20.0\,\text{mm}$ or probability $\ge 80\%$ (Standard ICAR & Agricultural Water Management Guidelines).
+  2. `CHEMICAL_SPRAYING_WIND_RISK`: Postpones chemical applications when sustained wind $> 20.0\,\text{km/h}$ or gusts $> 30.0\,\text{km/h}$ (Provisional threshold based on FAO/CABI Agrochemical Application Guidelines).
+  3. `OVERDUE_CULTIVATION_TASK`: Identifies operational delays ($\ge 1\,\text{day}$) and contextualizes risk with active growth stage (Krishi Cultivation Operations Standard).
+  4. `STAGE_TASK_MISALIGNMENT`: Identifies pending tasks from earlier cultivation stages; evaluated only when `GrowthStageStatus == RESOLVED` (Certified ICAR Cultivation Plan Phenological Stage Boundaries).
+- **Advisory Persistence & Idempotency (Flyway V22):** Persists advisories in `krishi.agricultural_advisories` with composite fingerprint `farm:planting:task:rule:date` and partial active unique index `WHERE status = 'ACTIVE'`. Repeated evaluations produce zero duplicate rows and zero duplicate notifications.
+- **Complete Advisory Lifecycle:** Implemented `ACTIVE` $\rightarrow$ `ACKNOWLEDGED` $\rightarrow$ `RESOLVED` / `SUPERSEDED` / `EXPIRED`. Escalation marks previous advisory as `SUPERSEDED` and dispatches `[ESCALATION]` notification.
+- **Workflow Safety:** Engine is strictly advisory and never mutates, completes, skips, or reschedules operational tasks.
+- **Security & Tenant Isolation:** Enforced `ROLE_FARMER` and verified farm ownership on all APIs (`evaluate`, `getAdvisories`, `acknowledge`, `resolve`).
+- **Audit Logging:** Published `AdvisoryCreatedEvent`, `AdvisoryAcknowledgedEvent`, and `AdvisoryResolvedEvent` persisted to `krishi.domain_events`.
+
+### 2. Backend Implementation & Testing
+- **New Database Migration:**
+  - `V22__create_agricultural_advisories_table.sql`: Schema definition, foreign keys to `farms`, `crop_plantings`, `tasks`, performance indexes, and unique active index `uq_active_agri_advisory`.
+- **New Domain Package (`com.krishi.backend.advisory`):**
+  - Entities & Enums: `AgriculturalAdvisory`, `AdvisoryStatus`
+  - Rules: `AgriculturalRule`, `RuleEvaluationOutcome`, `RuleEvaluationResult`, `AdvisoryProposal`, `IrrigationRainfallConflictRule`, `ChemicalSprayingWindRiskRule`, `OverdueCultivationTaskRule`, `StageTaskMisalignmentRule`
+  - Engine & Service: `AgriculturalAdvisoryEngine`, `AgriculturalAdvisoryService`
+  - DTOs & Mappers: `AgriculturalAdvisoryResponse`, `AdvisoryEvaluationSummaryResponse`, `RuleEvaluationReportItem`, `AgriculturalAdvisoryMapper`
+  - Controller: `AgriculturalAdvisoryController` (`POST /api/v1/crop-plantings/{plantingId}/advisories/evaluate`, `GET /api/v1/crop-plantings/{plantingId}/advisories`, `PATCH /api/v1/advisories/{id}/acknowledge`, `PATCH /api/v1/advisories/{id}/resolve`)
+  - Events: `AdvisoryCreatedEvent`, `AdvisoryAcknowledgedEvent`, `AdvisoryResolvedEvent`
+- **Test Coverage:**
+  - `IrrigationRainfallConflictRuleTest`: 8 unit tests.
+  - `ChemicalSprayingWindRiskRuleTest`: 5 unit tests.
+  - `OverdueCultivationTaskRuleTest`: 5 unit tests.
+  - `StageTaskMisalignmentRuleTest`: 5 unit tests.
+  - `AgriculturalAdvisoryEngineTest`: 2 unit tests.
+  - `AgriculturalAdvisoryServiceTest`: 9 unit tests (including notification persistence failure resilience, linked-task auto-resolution, and condition-cleared auto-resolution).
+  - `AgriculturalAdvisoryIntegrationTest`: 7 end-to-end MockMvc integration tests with PostgreSQL verifying evaluation, idempotency, filtering, lifecycle transitions, domain event auto-resolution auditing, tenant isolation, and weather failure resilience.
+
+### 3. Post-Review Refinements & Hardening
+- **Notification Transaction Boundary Isolation:**
+  - Configured `@Transactional(propagation = Propagation.REQUIRES_NEW)` on `NotificationService.createNotification`.
+  - An isolated physical transaction guarantees notification persistence errors cannot mark the outer advisory evaluation transaction rollback-only.
+  - Added unit test `testAdvisoryPersistedWhenNotificationFails` verifying advisory persistence and event publication succeed despite notification failures.
+- **API Response Consistency:**
+  - Standardized all `AgriculturalAdvisoryController` endpoints (`/evaluate`, `/advisories`, `/{id}/acknowledge`, `/{id}/resolve`) to return `ResponseEntity<ApiResponse<T>>` with standard `success`, `message`, `data`, and `timestamp` fields.
+- **N+1 Query Elimination in Agricultural Context:**
+  - Updated `AgriculturalContextService.buildRelevantTasks` to invoke `taskRepository.findByCropPlantingIdWithTemplateTaskAndStage(plantingId)`.
+  - Replaced ad-hoc relational lazy lookups with a single `LEFT JOIN FETCH` query across `Task`, `TemplateTask`, and `CultivationStage`.
+  - Updated mock repository expectations across all 9 `AgriculturalContextServiceTest` test methods.
+- **Audit Completeness on Automatic Resolution:**
+  - Implemented synchronous publication of `AdvisoryResolvedEvent` with descriptive `resolutionReason` when advisories are automatically resolved due to linked task completion/cancellation/skip or when risk conditions clear clean.
+  - Guaranteed repeat evaluation idempotency so that subsequent evaluations do not query already-resolved advisories or emit duplicate events.
+- **Stable Advisory Fingerprint Generation:**
+  - Stabilized task-based rule fingerprints (`OVERDUE_CULTIVATION_TASK`, `STAGE_TASK_MISALIGNMENT`) by binding to the intrinsic task `dueDate` (with a stable fallback) instead of volatile evaluation dates.
+- **Full Test Suite Results:**
+  - Backend: 137/137 tests passed (0 failures, 0 errors, 0 skipped).
+  - Frontend: 27/27 Vitest tests passed across 9 suites.
+  - Frontend Production Build: `vite build` completed cleanly with zero errors.
+  - Git Hygiene: `git diff --check` passed with 0 conflicts or whitespace violations.
+
+---
+
+## [2026-10-14] Milestone 4B: Agricultural Context Foundation
+
+### 1. Mandatory Architectural Invariants Implemented
+- **Safe Read-Only Domain Aggregation (Zero Schema/DB Persistence):** Implemented `AgriculturalContextService` with transactional read-only semantics (`@Transactional(readOnly = true)`) aggregating existing domain models (`CropPlanting`, `CropCycle`, `Farm`, `CultivationPlan`, `Task`, `WeatherForecastCache`, `WeatherAdvisory`). Persisting derived agricultural context was rejected because it introduces cache invalidation hazards, relational desynchronization, and schema duplication.
+- **Strict Ground Truth & Truthful Missing Data:** Never hallucinates or fabricates missing values. If crop variety or plot is unrecorded, nulls are preserved. Preserves all `GrowthStageStatus` domain semantics (`RESOLVED`, `NO_ACTIVE_PLAN`, `PRE_PLANTING`, `POST_HARVEST`, `STAGE_DEFINITION_ERROR`).
+- **Explicit Ground-Truth Demarcation (Estimated vs Observed Stage):** Distinguishes algorithmic `estimatedStage` (derived from mathematical calendar-day offsets against published ICAR packages) from farmer-confirmed biological `observedStage` (unconfirmed / null). Includes explicit agronomic basis and discrepancy notice to prevent downstream AI advisory engines or farmers from conflating mathematical models with physical field observations.
+- **4-Tier Environmental Weather Freshness:** Classifies weather context into `FRESH` (< 2h cache), `STALE` (> 2h cache served during outage), `UNAVAILABLE` (provider outage with empty cache), and `LOCATION_UNAVAILABLE` (farm GPS coordinates and district unconfigured). Pre-validates coordinate resolution and sets `@Transactional(noRollbackFor = {LocationUnavailableException.class, WeatherProviderException.class})` so provider or location failures never fail the caller's transaction.
+- **Dual API Integration Strategy:**
+  - Enriched existing `GET /api/v1/crop-plantings/{plantingId}/workspace` with optional `WeatherContext` to eliminate extra client round-trips for the React PWA.
+  - Added dedicated endpoint `GET /api/v1/crop-plantings/{plantingId}/context` (alias `/agricultural-context`) tailored for headless rule engines and external AI services, omitting UI-heavy disease incident and treatment trees.
+- **Tenant Isolation & Security:** Enforces `@PreAuthorize("hasRole('FARMER')")` and hierarchical farm ownership validation (`CropPlanting -> CropCycle -> Farm -> Owner == userDetails.getUserId()`) on both endpoints.
+
+### 2. Backend Implementation & Testing
+- **New Domain DTOs (`com.krishi.backend.cropplanting.dto.context`):**
+  - `AgriculturalContextResponse.java`: Top-level composite agricultural context.
+  - `CropIdentityContext.java`: Crop planting, cycle, variety, planting date, harvest date, and elapsed calendar days.
+  - `GrowthStageContext.java`: Algorithmic estimate, field-observed stage, agronomic basis, discrepancy notice.
+  - `ObservedGrowthStageContext.java`: Models farmer-observed biological stage.
+  - `LocationContext.java`: Farm ID, name, address, state, district, resolved GPS/Centroid coordinates, coordinate source, optional plot.
+  - `CultivationPlanSummaryContext.java`: Plan ID, version, status, template metadata, duration, total stages and tasks count.
+  - `OperationalTaskContext.java`: Task ID, title, type, status, due date, overdue flag, days overdue, associated stage name.
+  - `WeatherContext.java`: Weather freshness status, timestamps, observation summary, active advisories, attribution notice.
+  - `WeatherFreshnessStatus.java`: Freshness enum (`FRESH`, `STALE`, `UNAVAILABLE`, `LOCATION_UNAVAILABLE`).
+  - `WeatherObservationSummary.java`: Temperature, relative humidity, precipitation, wind speed, weather code, condition description.
+- **Domain Services & Controllers:**
+  - `AgriculturalContextService.java`: Safe domain aggregator service.
+  - `CropPlantingService.java`: Enriched `getCropWorkspace` with weather context resolution.
+  - `CropPlantingController.java`: Added `GET /api/v1/crop-plantings/{plantingId}/context` and `/agricultural-context`.
+  - `WeatherForecastService.java`: Added `noRollbackFor` to `@Transactional` to guard against rollback-only marking on caller transactions.
+  - `WeatherAdvisoryRepository.java`: Added `findByCropPlantingIdAndStatusInOrderByTargetDateAsc`.
+- **Test Coverage:**
+  - `AgriculturalContextServiceTest.java`: 10 comprehensive unit tests covering full valid context, missing plan, missing location coordinates/district, external provider failure, stale cache fallback, missing variety/plot, pre-planting date, post-harvest date, active advisories filtering, and IDOR tenant isolation.
+  - `AgriculturalContextIntegrationTest.java`: 5 end-to-end MockMvc integration tests verifying valid planting with active plan, planting without active plan, missing farm location, cross-farmer IDOR security denial (HTTP 403), and backward compatibility of `/workspace` with weather payload.
+  - **Full Backend Suite Regression:** 96/96 tests passing (0 failures, 0 errors, 0 skipped).
+  - **Frontend Suite Regression:** 27/27 Vitest tests passing across 9 test suites.
+  - **Frontend Production Build:** Vite build cleanly completed in 7.36s with zero errors.
+
+---
+
+## [2026-10-14] Milestone 4A: Dynamic Crop Growth-Stage Estimator
+
+### 1. Mandatory Architectural Invariants Implemented
+- **Deterministic Agronomic Resolver (Zero ML):** Implemented `AgronomicStageResolverService` utilizing versioned ICAR cultivation stages (`CultivationStage.startDayOffset` and `endDayOffset`) from active `CultivationPlan`. Zero machine learning or stochastic models.
+- **Strict Calendar-Day Convention:** Calculated elapsed days from planting using `ChronoUnit.DAYS.between(plantingDate.toLocalDate(), asOfDate)`. Day 0 is explicitly defined as the planting date (`elapsedDays == 0`).
+- **Closed-Interval Matching & Day 0 Transition:** Handled nursery-to-field transitions where nursery stage ends at Day 0 (`[-15, 0]`) and transplanting begins at Day 0 (`[0, 20]`). When `elapsedDays == 0`, the resolver deterministically resolves to the in-field stage (Stage 2) rather than nursery.
+- **Non-Arbitrary Boundary & Error Safety:** In the event of conflicting stage overlaps or gaps in the stage catalogue, returns `STAGE_DEFINITION_ERROR` rather than silently picking an arbitrary stage.
+- **Explicit Lifecycle States (`GrowthStageStatus`):** Explicitly models `RESOLVED`, `PRE_PLANTING`, `POST_HARVEST`, `NO_ACTIVE_PLAN`, `MISSING_PLANTING_DATE`, and `STAGE_DEFINITION_ERROR`. Never hallucinates or fabricates a confirmed stage.
+- **Non-Invasive API Integration:** Integrated into `CropPlantingResponse` and `CropWorkspaceResponse` (both individual planting and workspace endpoints), accepting an optional `asOfDate` evaluation parameter while maintaining complete backward compatibility. Zero schema changes required.
+
+### 2. Backend Implementation & Testing
+- **New Domain DTOs & Services:**
+  - `GrowthStageStatus.java`: Status enum for agronomic resolution.
+  - `EstimatedGrowthStageResponse.java`: Detailed growth stage response DTO with stage boundaries, elapsed days, and clamped progress percentages.
+  - `AgronomicStageResolverService.java`: Core estimation service.
+- **Updated Controllers & Mappers:**
+  - `CropPlantingResponse.java`: Added `estimatedGrowthStage` field.
+  - `CropWorkspaceResponse.java`: Added `estimatedGrowthStage` field.
+  - `CropPlantingMapper.java`: Overloaded `toResponse(planting, estimatedGrowthStage)`.
+  - `CropPlantingService.java`: Injected resolver into create, update, getById, getByCropCycle, and getCropWorkspace.
+  - `CropPlantingController.java`: Added optional `@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOfDate` parameter to GET endpoints.
+- **Test Coverage:**
+  - `AgronomicStageResolverServiceTest.java`: 17 comprehensive unit tests covering Day 0, stage boundaries, consecutive transitions, missing plans, future plantings, post-harvest dates, gaps, overlaps, progress clamp, multiple revisions, mid-cycle shared boundary transitions, and consistent/inconsistent expected harvest date edge cases.
+  - `AgronomicStageResolverIntegrationTest.java`: 4 comprehensive integration tests covering end-to-end API lifecycle, workspace aggregation, future dates, and IDOR/tenant isolation.
+  - **Full Suite Regression:** 81/81 backend tests passing (0 failures, 0 errors, 0 skipped).
+  - **Frontend Regression:** 27/27 Vitest tests passing across 9 test suites.
+
+---
+
 ## [2026-10-13] Milestone 3B: Weather Intelligence & Contextual Advisories
 
 ### 1. Mandatory Architectural Corrections Implemented

@@ -9,6 +9,7 @@ import com.krishi.backend.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -100,7 +101,7 @@ public class NotificationService {
      * Internal programmatic API used by Event Listeners to persist notifications.
      * This operates as a system activity and does not perform user security checks.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Notification createNotification(UUID userId, String title, String message, NotificationType type) {
         Notification notification = new Notification();
         notification.setId(UUID.randomUUID());

@@ -1,6 +1,7 @@
 package com.krishi.backend.weather.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.krishi.backend.common.exception.LocationUnavailableException;
 import com.krishi.backend.common.security.CustomUserDetails;
 import com.krishi.backend.farm.entity.Farm;
 import com.krishi.backend.farm.repository.FarmRepository;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
@@ -42,7 +44,7 @@ public class WeatherForecastService {
     private final WeatherAdvisoryRepository advisoryRepository;
     private final ObjectMapper objectMapper;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = {LocationUnavailableException.class, WeatherProviderException.class})
     public WeatherForecastResponse getWeatherForFarm(UUID farmId, CustomUserDetails userDetails) {
         Farm farm = getFarmAndValidateOwnership(farmId, userDetails);
         ResolvedLocation location = districtCentroidResolver.resolveLocation(farm);
@@ -89,7 +91,7 @@ public class WeatherForecastService {
         }
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = {LocationUnavailableException.class, WeatherProviderException.class})
     public WeatherForecastResponse refreshWeatherForFarm(UUID farmId, CustomUserDetails userDetails) {
         Farm farm = getFarmAndValidateOwnership(farmId, userDetails);
         ResolvedLocation location = districtCentroidResolver.resolveLocation(farm);
@@ -223,7 +225,7 @@ public class WeatherForecastService {
                 .build();
     }
 
-    private WeatherAdvisoryResponse mapToAdvisoryResponse(WeatherAdvisory advisory) {
+    public WeatherAdvisoryResponse mapToAdvisoryResponse(WeatherAdvisory advisory) {
         String cropName = advisory.getCropPlanting() != null ? advisory.getCropPlanting().getCropName() : null;
         String taskTitle = advisory.getTask() != null ? advisory.getTask().getTitle() : null;
 

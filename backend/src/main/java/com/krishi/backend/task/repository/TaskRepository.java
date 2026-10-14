@@ -22,6 +22,13 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     List<Task> findByCropPlantingId(UUID cropPlantingId);
 
     /**
+     * Find all tasks associated with a crop planting with eagerly fetched template task and stage
+     * to eliminate N+1 queries during context resolution.
+     */
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.templateTask tt LEFT JOIN FETCH tt.stage WHERE t.cropPlanting.id = :cropPlantingId")
+    List<Task> findByCropPlantingIdWithTemplateTaskAndStage(@Param("cropPlantingId") UUID cropPlantingId);
+
+    /**
      * Find all tasks associated with a specific treatment.
      *
      * @param treatmentId the treatment ID

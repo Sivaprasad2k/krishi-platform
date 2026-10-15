@@ -72,6 +72,12 @@ public class AgriculturalAdvisoryService {
         LocalDate evaluationDate = LocalDate.now();
         AgriculturalContextResponse context = agriculturalContextService.getAgriculturalContext(plantingId, evaluationDate, userDetails);
 
+        // Acquire pessimistic row-level lock on CropPlanting for evaluation and persistence.
+        // Context resolution (including any external weather provider calls) has completed,
+        // ensuring no row locks are held during external I/O.
+        planting = cropPlantingRepository.findByIdForUpdate(plantingId)
+                .orElseThrow(() -> new IllegalArgumentException("Crop planting not found with id: " + plantingId));
+
         // Run rules engine
         AgriculturalAdvisoryEngine.EngineExecutionResult execResult = advisoryEngine.evaluate(context);
 
@@ -297,30 +303,23 @@ public class AgriculturalAdvisoryService {
                 .expiresAt(proposal.getExpiresAt())
                 .build();
 
-        try {
-            AgriculturalAdvisory saved = advisoryRepository.saveAndFlush(advisory);
+        AgriculturalAdvisory saved = advisoryRepository.saveAndFlush(advisory);
 
-            // Publish AdvisoryCreatedEvent
-            domainEventPublisher.publish(AdvisoryCreatedEvent.builder()
-                    .advisoryId(saved.getId())
-                    .farmId(farm.getId())
-                    .cropPlantingId(planting.getId())
-                    .taskId(task != null ? task.getId() : null)
-                    .ruleCode(saved.getRuleCode())
-                    .severity(saved.getSeverity())
-                    .title(saved.getTitle())
-                    .status(saved.getStatus())
-                    .occurredAt(LocalDateTime.now())
-                    .createdBy(userId)
-                    .build());
+        // Publish AdvisoryCreatedEvent
+        domainEventPublisher.publish(AdvisoryCreatedEvent.builder()
+                .advisoryId(saved.getId())
+                .farmId(farm.getId())
+                .cropPlantingId(planting.getId())
+                .taskId(task != null ? task.getId() : null)
+                .ruleCode(saved.getRuleCode())
+                .severity(saved.getSeverity())
+                .title(saved.getTitle())
+                .status(saved.getStatus())
+                .occurredAt(LocalDateTime.now())
+                .createdBy(userId)
+                .build());
 
-            return saved;
-        } catch (DataIntegrityViolationException dive) {
-            log.info("Concurrent unique active advisory creation conflict on [{}]; returning existing active.",
-                    proposal.getFingerprint());
-            return advisoryRepository.findByAdvisoryFingerprintAndStatus(proposal.getFingerprint(), AdvisoryStatus.ACTIVE)
-                    .orElse(advisory);
-        }
+        return saved;
     }
 
     private void resolveAndExpireStaleAdvisories(

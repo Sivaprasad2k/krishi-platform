@@ -11,6 +11,8 @@ import TreatmentCard from '../../treatment/components/TreatmentCard';
 import AddTreatmentModal from '../../treatment/components/AddTreatmentModal';
 import TaskCard from '../../tasks/components/TaskCard';
 import CultivationPlanCard from '../components/CultivationPlanCard';
+import GrowthStageProgressCard from '../components/GrowthStageProgressCard';
+import AgriculturalAdvisorySection from '../../advisories/components/AgriculturalAdvisorySection';
 
 export const CropDetailsPage = () => {
   const { id } = useParams();
@@ -109,7 +111,20 @@ export const CropDetailsPage = () => {
         )}
       </div>
 
-      {/* 1. TODAY'S WORK */}
+      {/* 1. PHENOLOGICAL GROWTH STAGE TIMELINE */}
+      <GrowthStageProgressCard
+        estimatedGrowthStage={data.estimatedGrowthStage}
+        crop={crop}
+        cultivationPlan={data.cultivationPlan}
+      />
+
+      {/* 2. AGRICULTURAL ADVISORIES & SMART ALERTS */}
+      <AgriculturalAdvisorySection
+        plantingId={crop.id}
+        onAdvisoryUpdated={loadWorkspaceDetails}
+      />
+
+      {/* 3. TODAY'S WORK */}
       <div className="bg-white p-6 rounded-2xl border border-[#C9DCCB] shadow-2xs space-y-4">
         <div className="flex items-center space-x-2 pb-3 border-b border-[#C9DCCB]">
           <CheckSquare className="h-5 w-5 text-[#2563EB]" />

@@ -57,9 +57,17 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -638,5 +646,72 @@ public class AgriculturalAdvisoryIntegrationTest {
 
         assertTrue(rainRuleHasInsufficientContext, "Weather rule should report INSUFFICIENT_CONTEXT on provider failure");
         assertTrue(overdueRuleSucceeded, "Overdue task rule should succeed independently of weather provider outage");
+    }
+
+    @Test
+    @DisplayName("Concurrency: Concurrent evaluations for the same planting execute safely without transaction abort or duplicate ACTIVE advisories")
+    void testConcurrentAdvisoryEvaluation() throws Exception {
+        LocalDate today = LocalDate.now();
+        UUID plantingId = createPlantingWithPlan(today.minusDays(10));
+
+        // Create tasks that trigger advisories (Irrigation conflict from 55mm rain, Spraying risk from 28km/h wind)
+        createManualTask(plantingId, "Scheduled Irrigation", TaskType.IRRIGATION, today.atTime(8, 0));
+        createManualTask(plantingId, "Scheduled Spraying", TaskType.PEST_CONTROL, today.plusDays(1).atTime(9, 0));
+
+        // Pre-warm weather cache for the farm so concurrent threads race specifically on advisory evaluation
+        mockMvc.perform(get("/api/v1/farms/" + farmId + "/weather")
+                        .header("Authorization", "Bearer " + farmerToken))
+                .andExpect(status().isOk());
+
+        int threadCount = 2;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CyclicBarrier barrier = new CyclicBarrier(threadCount);
+        List<Future<MvcResult>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(executor.submit(() -> {
+                barrier.await(10, TimeUnit.SECONDS);
+                return mockMvc.perform(post("/api/v1/crop-plantings/" + plantingId + "/advisories/evaluate")
+                                .header("Authorization", "Bearer " + farmerToken))
+                        .andReturn();
+            }));
+        }
+
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS));
+
+        // Verify outcomes of both concurrent requests
+        for (Future<MvcResult> future : futures) {
+            MvcResult result = future.get();
+            assertEquals(200, result.getResponse().getStatus(), "Expected 200 OK from concurrent evaluation");
+            JsonNode rootJson = objectMapper.readTree(result.getResponse().getContentAsString());
+            assertTrue(rootJson.path("success").asBoolean());
+            assertTrue(rootJson.path("data").path("activeAdvisoriesCount").asInt() >= 2);
+        }
+
+        // Verify database: no duplicate ACTIVE advisories for the same fingerprint
+        List<AgriculturalAdvisory> activeAdvisories = agriAdvisoryRepository.findByCropPlantingIdAndStatusOrderByCreatedAtDesc(
+                plantingId, AdvisoryStatus.ACTIVE
+        );
+        assertTrue(activeAdvisories.size() >= 2);
+        Set<String> fingerprints = new HashSet<>();
+        for (AgriculturalAdvisory adv : activeAdvisories) {
+            assertTrue(fingerprints.add(adv.getAdvisoryFingerprint()),
+                    "Duplicate ACTIVE advisory found for fingerprint: " + adv.getAdvisoryFingerprint());
+        }
+
+        // Verify notifications count: exactly 1 notification per unique active advisory created (no duplicates)
+        List<com.krishi.backend.notification.entity.Notification> notifications = notificationRepository.findAll().stream()
+                .filter(n -> n.getNotificationType() == com.krishi.backend.notification.entity.NotificationType.AGRICULTURAL_ADVISORY)
+                .toList();
+        assertEquals(activeAdvisories.size(), notifications.size(),
+                "Notifications should not be duplicated across concurrent evaluations");
+
+        // Verify domain events: exactly 1 AGRICULTURAL_ADVISORY_CREATED per unique active advisory
+        List<com.krishi.backend.common.event.entity.DomainEvent> createdEvents = domainEventRepository.findAll().stream()
+                .filter(e -> "AGRICULTURAL_ADVISORY_CREATED".equals(e.getEventType()))
+                .toList();
+        assertEquals(activeAdvisories.size(), createdEvents.size(),
+                "AdvisoryCreatedEvent should not be duplicated across concurrent evaluations");
     }
 }

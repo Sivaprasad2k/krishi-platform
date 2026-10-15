@@ -30,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -105,6 +106,8 @@ class AgriculturalAdvisoryServiceTest {
         planting.setCropCycle(cycle);
 
         userDetails = new CustomUserDetails(owner);
+
+        lenient().when(cropPlantingRepository.findByIdForUpdate(any())).thenReturn(Optional.of(planting));
     }
 
     @Test
@@ -509,5 +512,50 @@ class AgriculturalAdvisoryServiceTest {
         assertEquals(AdvisoryStatus.RESOLVED, activeAdv.getStatus());
         assertNotNull(activeAdv.getResolvedAt());
         verify(domainEventPublisher).publish(any());
+    }
+
+    @Test
+    @DisplayName("Should propagate DataIntegrityViolationException without masking or swallowing unexpected database errors")
+    void testDatabaseFailureOnSaveDoesNotMaskOrSwallowError() {
+        when(cropPlantingRepository.findById(plantingId)).thenReturn(Optional.of(planting));
+        when(agriculturalContextService.getAgriculturalContext(eq(plantingId), any(LocalDate.class), eq(userDetails)))
+                .thenReturn(AgriculturalContextResponse.builder().build());
+
+        AdvisoryProposal proposal = AdvisoryProposal.builder()
+                .fingerprint("fp:unique_error")
+                .ruleCode("IRRIGATION_RAINFALL_CONFLICT")
+                .severity(AdvisorySeverity.HIGH)
+                .title("Rain Risk")
+                .message("Heavy rainfall expected")
+                .recommendedAction("Hold off irrigation")
+                .targetDate(LocalDate.now())
+                .provenance("Standard ICAR")
+                .build();
+
+        AgriculturalAdvisoryEngine.EngineExecutionResult execResult = AgriculturalAdvisoryEngine.EngineExecutionResult.builder()
+                .reportItems(List.of(RuleEvaluationReportItem.builder()
+                        .ruleCode("IRRIGATION_RAINFALL_CONFLICT")
+                        .ruleName("Rainfall Risk for Scheduled Irrigation")
+                        .outcome(RuleEvaluationOutcome.RULE_EVALUATION_SUCCESS)
+                        .proposalsCount(1)
+                        .build()))
+                .proposals(List.of(proposal))
+                .build();
+
+        when(advisoryEngine.evaluate(any())).thenReturn(execResult);
+        when(advisoryRepository.findByAdvisoryFingerprintAndStatus("fp:unique_error", AdvisoryStatus.ACTIVE))
+                .thenReturn(Optional.empty());
+        when(advisoryRepository.findFirstByAdvisoryFingerprintOrderByCreatedAtDesc("fp:unique_error"))
+                .thenReturn(Optional.empty());
+
+        when(advisoryRepository.saveAndFlush(any(AgriculturalAdvisory.class)))
+                .thenThrow(new DataIntegrityViolationException("Database constraint violation or storage error"));
+
+        assertThrows(DataIntegrityViolationException.class, () ->
+                advisoryService.evaluateAdvisories(plantingId, userDetails)
+        );
+
+        verify(notificationService, never()).createNotification(any(), any(), any(), any());
+        verify(domainEventPublisher, never()).publish(any());
     }
 }

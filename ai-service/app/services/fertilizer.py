@@ -185,11 +185,7 @@ def compute_recommendation(
     # Product grade fractions are declared on the same basis as the dose key, so
     # nutrient->product conversion stays coherent without silent basis switching.
     applications: list[dict] = []
-    for dose_key, nutrient_response_key in (
-        ("N", "nitrogen"),
-        ("P2O5", "phosphorus"),
-        ("K2O", "potassium"),
-    ):
+    for dose_key in ("N", "P2O5", "K2O"):
         product = dataset.products_by_nutrient[dose_key]
         schedule = dataset.schedules[dose_key]
         (_, product_fraction) = product.nutrients[0]

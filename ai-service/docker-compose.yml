@@ -1,0 +1,13 @@
+services:
+  ai:
+    build: .
+    container_name: krishi-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      # Must match SPRING_AI_INTERNAL_KEY configured on the backend (Developer A)
+      KRISHI_AI_INTERNAL_KEY: ${KRISHI_AI_INTERNAL_KEY:-dev-internal-key}
+      KRISHI_AI_ENV: ${KRISHI_AI_ENV:-dev}
+      KRISHI_AI_DISEASE_MODEL_VERSION: ${KRISHI_AI_DISEASE_MODEL_VERSION:-plant-vision-v2.1}
+      KRISHI_AI_DOCTOR_MODEL: ${KRISHI_AI_DOCTOR_MODEL:-agri-llm-lora-v1}
+    restart: unless-stopped
